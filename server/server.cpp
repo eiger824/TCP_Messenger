@@ -167,10 +167,12 @@ void Server::acceptUser() {
     if (m_debug)
       DLOG (INFO) <<"Message: [" << message.toStdString() << "]" ;
     if (message.contains("ue_name")) {
-      UE temp = m_online_users.at(0);
-      temp.name = message.mid(8, message.lastIndexOf(")") - message.lastIndexOf("(") - 1);
-      m_online_users.replace(0,temp);
+      QString temp_name = message.mid(8, message.lastIndexOf(")") - message.lastIndexOf("(") - 1);
+      UE temp = m_online_users.last();
+      temp.name = temp_name;
+      m_online_users.replace(m_online_users.size() -1,temp);
       DLOG (INFO) <<"New user is online: " << temp;
+      debugInfo("Size of list: " + QString::number(m_online_users.size()));
       if (logLabel->toPlainText() != "") {
 	logLabel->setText(logLabel->toPlainText() + "\n[" + temp.name + "]@" +
 			  temp.ip + ":" +
