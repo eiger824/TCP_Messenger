@@ -22,7 +22,10 @@ class Client : public QDialog
 
  public:
   Client(QWidget *parent = 0);
-  void setData(bool debug_mode, std::string username);
+  void setData(bool debug_mode,
+	       std::string username,
+	       std::string ip,
+	       std::string port);
 
   private slots:
     void dataReceived();

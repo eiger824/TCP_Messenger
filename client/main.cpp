@@ -1,13 +1,15 @@
 #include <QApplication>
 #include "client.h"
 #include <iostream>
-#include <cstring>
 #include <string>
+#include <stdexcept>
 
 void displayHelp() {
   std::cout << "Usage: ./client <args>\n";
   std::cout << "Arg. list:\n";
   std::cout << "-d, --debug Enable debug mode (disabled by default)\n";
+  std::cout << "--ip <ipaddr> Server IP address\n";
+  std::cout << "-p, --port <port> Server port\n";
   std::cout << "-u, --username <name> Username to use\n";
 }
 
@@ -15,7 +17,8 @@ int main(int argc, char *argv[])
 {
   bool debug_enabled = false;
   std::string username = "";
-  
+  std::string ip = "";
+  std::string port = "";
   if (argc > 1) {
     for (unsigned i = 1; i < argc; ++i) {
       if (!strcmp(argv[i],"-d") ||
@@ -30,12 +33,48 @@ int main(int argc, char *argv[])
 	  displayHelp();
 	  return -1;
 	}
+	++i;
+      } else if (!strcmp(argv[i],"-p") ||
+		 !strcmp(argv[i],"--port")) {
+	if (i != argc-1) {
+	  port = argv[i+1];
+	  std::string::size_type sz;
+	  int portnr;
+	  try {
+	    portnr = std::stoi(port,&sz);
+	  } catch(const std::invalid_argument& ia) {
+	    std::cerr << "ERROR: port must be an integer.\n";
+	    displayHelp();
+	    return -1;
+	  }
+	  if (0 >= portnr || portnr > 65535) {
+	    std::cout << "ERROR: port must be an integer between (1-65535).\n";
+	    displayHelp();
+	    return -1;
+	  }
+	  ++i;
+	} else {
+	  displayHelp();
+	  return -1;
+	}
+      } else if (!strcmp(argv[i],"--ip")) {
+	if (i != argc-1) {
+	  ip = argv[i+1];
+	} else {
+	  displayHelp();
+	  return -1;
+	}
+	++i;
+      } else {
+	std::cout << "ERROR: unrecognized option : " << argv[i] << std::endl;
+	displayHelp();
+	return -1;
       }
     }
   }
   QApplication app(argc, argv);
   Client client;
-  client.setData(debug_enabled, username);
+  client.setData(debug_enabled, username, ip, port);
   
 #ifdef Q_OS_SYMBIAN
   // Make application better looking and more usable on small screen

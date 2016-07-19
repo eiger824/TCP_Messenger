@@ -45,7 +45,7 @@ Client::Client(QWidget *parent)
     ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
 
   hostLineEdit = new QLineEdit(ipAddress);
-  portLineEdit = new QLineEdit("3422");
+  portLineEdit = new QLineEdit();
   messageLineEdit = new QTextEdit;
   messageLineEdit->setEnabled(false);
   messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
@@ -354,14 +354,22 @@ QString Client::filterMessage(QString& dest, QString data) {
   return data.mid(data.indexOf("(") + 1, data.indexOf(")") - data.indexOf("(") - 1);
 }
 
-void Client::setData(bool debug_mode, std::string username) {
+void Client::setData(bool debug_mode,
+		     std::string username,
+		     std::string ip,
+		     std::string port) {
   m_debug = debug_mode;
   if (m_debug)
     DLOG (INFO) << "Debug mode is enabled";
   else
     DLOG (INFO) << "Debug mode is disabled";
-  usernameLineEdit->setText(QString::fromStdString(username));
-  DLOG (INFO) << "Username: [" << username << "]";
+
+  if (!QString::fromStdString(username).isEmpty())
+    usernameLineEdit->setText(QString::fromStdString(username));
+  if (!QString::fromStdString(ip).isEmpty())
+    hostLineEdit->setText(QString::fromStdString(ip));
+  if (!QString::fromStdString(port).isEmpty())
+    portLineEdit->setText(QString::fromStdString(port));
 }
 
 void Client::debugInfo(const QString& info) {
