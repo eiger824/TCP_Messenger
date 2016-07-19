@@ -1,0 +1,9 @@
+# TCP_Messenger
+1) mkdir build && cd build
+2) cmake -DCMAKE_INSTALL_PREFIX=/path_to_project/build/cmake_targets ..
+3) make install
+4) additionally a script can be created in the build directory which automatically calls both generated terminals, something like this (in a file called run.sh with chmod=rwx run.sh)
+   ./cmake_targets/client -d -u eiger824 &
+   ./cmake_targets/server -d &
+
+ENJOY :)
