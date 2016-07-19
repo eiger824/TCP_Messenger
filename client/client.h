@@ -54,7 +54,6 @@ class Client : public QDialog
     QLabel *m_connection_status;
     QLabel *m_status;
     QTextEdit *m_chat;
-    QTextEdit *onlineUsers;
     QLineEdit *hostLineEdit;
     QLineEdit *portLineEdit;
     QTextEdit *messageLineEdit;

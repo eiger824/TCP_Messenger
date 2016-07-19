@@ -28,12 +28,6 @@ Client::Client(QWidget *parent)
   m_chat->setStyleSheet("border: 2px solid black; background-color: white; color: black;");
   m_chat->setAlignment(Qt::AlignTop | Qt::AlignLeft);
   
-  onlineUsers = new QTextEdit;
-  onlineUsers->setReadOnly(true);
-  onlineUsers->setStyleSheet("border: 2px solid black; color: black; background-color: white;");
-  onlineUsers->setFixedSize(300,100);
-  onlineUsers->setAlignment(Qt::AlignBottom | Qt::AlignLeft);
-
   blockSize=0;
   m_online = false;
   m_debug = false;
@@ -150,7 +144,6 @@ Client::Client(QWidget *parent)
     statusLabel->setText(tr("Opening network session."));
     networkSession->open();
   }
-
   enableGetFortuneButton();
   this->layout()->setSizeConstraint( QLayout::SetFixedSize );
 }
@@ -194,7 +187,6 @@ void Client::dataReceived()
 				message.indexOf(")") - message.indexOf("(") - 1);
     QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "(Me)");
     m_box->addItems(showing_users.split(13));
-    onlineUsers->setText(showing_users);
     debugInfo("Online users:" + showing_users);
     //and change icon
     QPixmap image;
@@ -339,9 +331,7 @@ void Client::nowOffline() {
 
   debugInfo("Removing my name from list");
   //and remove my name from list
-  QString text = onlineUsers->toPlainText();
-  debugInfo("Removing: " + text.remove(usernameLineEdit->text() + "(Me)"));
-  onlineUsers->setText(text);
+  m_box->removeItem(1);
 }
 
 void Client::getOffline() {
