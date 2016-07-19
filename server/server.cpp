@@ -52,14 +52,6 @@ Server::Server(QWidget *parent)
     sessionOpened();
   }
 
-  fortunes << tr("You've been leading a dog's life. Stay off the furniture.")
-	   << tr("You've got to think about tomorrow.")
-	   << tr("You will be surprised by a loud noise.")
-	   << tr("You will feel hungry again in another hour.")
-	   << tr("You might have mail.")
-	   << tr("You cannot kill time without injuring eternity.")
-	   << tr("Computers are not intelligent. They only think they are.");
-
   //object connections
   connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
   connect(tcpServer, SIGNAL(newConnection()), this, SLOT(acceptUser()));
@@ -69,7 +61,7 @@ Server::Server(QWidget *parent)
   buttonLayout->addWidget(quitButton);
   buttonLayout->addStretch(1);
 
-  QVBoxLayout *mainLayout = new QVBoxLayout;
+  mainLayout = new QVBoxLayout;
   mainLayout->addWidget(statusLabel);
   mainLayout->addWidget(logLabel);
   mainLayout->addWidget(new QLabel("Currently online users:"));
@@ -78,6 +70,7 @@ Server::Server(QWidget *parent)
   setLayout(mainLayout);
 
   setWindowTitle(tr("Fortune Server"));
+  this->layout()->setSizeConstraint( QLayout::SetFixedSize );
 }
 
 void Server::sessionOpened()
@@ -170,6 +163,7 @@ void Server::acceptUser() {
     
     QString message;
     in >> message;
+    
     if (m_debug)
       DLOG (INFO) <<"Message: [" << message.toStdString() << "]" ;
     if (message.contains("ue_name")) {
@@ -191,6 +185,8 @@ void Server::acceptUser() {
       } else {
 	onlineUsers->setText(temp.name);
       }
+      qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
+								      + QString::number(m_online_users.size()) + "):");
       //inform user of currently online users
       QByteArray block;
       QDataStream out(&block, QIODevice::WriteOnly);
@@ -238,6 +234,8 @@ void Server::unregisterUser() {
     DLOG (INFO) << "Removing: " << current.remove(m_online_users.at(0).name, Qt::CaseInsensitive).toStdString() ;
     onlineUsers->setText(current);
     m_online_users.removeAt(0);
+    qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
+								    + QString::number(m_online_users.size()) + "):");
   }
 }
 

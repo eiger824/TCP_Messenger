@@ -135,6 +135,7 @@ Client::Client(QWidget *parent)
   }
 
   enableGetFortuneButton();
+  this->layout()->setSizeConstraint( QLayout::SetFixedSize );
 }
 
 void Client::getOnline()
@@ -311,7 +312,7 @@ void Client::nowOffline() {
   debugInfo("Removing my name from list");
   //and remove my name from list
   QString text = onlineUsers->toPlainText();
-  DLOG (INFO) << text.remove(usernameLineEdit->text()).toStdString();
+  debugInfo("Removing: " + text.remove(usernameLineEdit->text() + "(Me)"));
   onlineUsers->setText(text);
 }
 

@@ -9,6 +9,7 @@ class QLabel;
 class QPushButton;
 class QTcpServer;
 class QTextEdit;
+class QVBoxLayout;
 class QNetworkSession;
 
 struct UE {
@@ -33,12 +34,12 @@ class Server : public QDialog
    QString filterMessage(QString& dest, QString data);
    void debugInfo(const QString& info);
  private:
+   QVBoxLayout *mainLayout;
    QLabel *statusLabel;
    QTextEdit *logLabel;
    QTextEdit *onlineUsers;
    QPushButton *quitButton;
    QTcpServer *tcpServer;
-   QStringList fortunes;
    QNetworkSession *networkSession;
    QList<UE> m_online_users;
    quint16 blockSize;
