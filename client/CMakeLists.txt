@@ -6,6 +6,7 @@ include(${QT_USE_FILE})
 add_definitions(${QT_DEFINITIONS})
 
 include_directories(system
+  ${PROJ_INCLUDES}
   ${GLOG_INCLUDE_DIRS}
   )
 
@@ -32,3 +33,8 @@ target_link_libraries(client
   )
 
 install(TARGETS client DESTINATION ${PROJECT_BINARY_DIR}/cmake_targets)
+install(FILES
+  ${PROJECT_SOURCE_DIR}/images/online.png
+  ${PROJECT_SOURCE_DIR}/images/offline.png
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/../images)
+

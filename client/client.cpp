@@ -14,12 +14,20 @@ Client::Client(QWidget *parent)
   portLabel = new QLabel(tr("S&erver port:"));
   messageLabel = new QLabel(tr("Mess&age to send:\n(CTRL + Enter to send)"));
   m_username = new QLabel(tr("&Username:"));
+  m_connection_status = new QLabel("Connection status:");
+  m_status = new QLabel;
+  QPixmap image;
+  if (image.load("images/offline.png")) {
+    m_status->setPixmap(image);
+  } else m_status->setText("Error loading icon");
+  
   m_chat = new QTextEdit;
   m_chat->setFixedSize(400,400);
   m_chat->setEnabled(true);
   m_chat->setReadOnly(true);
   m_chat->setStyleSheet("border: 2px solid black; background-color: white; color: black;");
   m_chat->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+  
   onlineUsers = new QTextEdit;
   onlineUsers->setReadOnly(true);
   onlineUsers->setStyleSheet("border: 2px solid black; color: black; background-color: white;");
@@ -92,7 +100,7 @@ Client::Client(QWidget *parent)
   connect(m_connection_socket, SIGNAL(disconnected()), this,
 	  SLOT(nowOffline()));
 
-  QCheckBox *checkbox = new QCheckBox("Enable debug messages on background", this);
+  checkbox = new QCheckBox("Enable debug messages on background", this);
   connect(checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
   
   QGridLayout *mainLayout = new QGridLayout;
@@ -102,14 +110,16 @@ Client::Client(QWidget *parent)
   mainLayout->addWidget(portLineEdit, 1, 1);
   mainLayout->addWidget(m_username, 2, 0);
   mainLayout->addWidget(usernameLineEdit, 2, 1);
-  mainLayout->addWidget(buttonBox, 3, 0, 1, 2);
-  mainLayout->addWidget(new QLabel("Currently online users:"), 4, 0);
-  mainLayout->addWidget(onlineUsers, 5, 0);
-  mainLayout->addWidget(checkbox, 5, 1);
-  mainLayout->addWidget(m_chat, 6, 0, 1, 2, Qt::AlignCenter);
-  mainLayout->addWidget(messageLabel, 7, 0);
-  mainLayout->addWidget(messageLineEdit, 7, 1);
-  mainLayout->addWidget(statusLabel, 8, 0, 1, 2);
+  mainLayout->addWidget(m_connection_status, 3, 0);
+  mainLayout->addWidget(m_status, 3, 1);
+  mainLayout->addWidget(buttonBox, 4, 0, 1, 2);
+  mainLayout->addWidget(new QLabel("Currently online users:"), 5, 0);
+  mainLayout->addWidget(onlineUsers, 6, 0);
+  mainLayout->addWidget(checkbox, 6, 1);
+  mainLayout->addWidget(m_chat, 7, 0, 1, 2, Qt::AlignCenter);
+  mainLayout->addWidget(messageLabel, 8, 0);
+  mainLayout->addWidget(messageLineEdit, 8, 1);
+  mainLayout->addWidget(statusLabel, 9, 0, 1, 2);
   setLayout(mainLayout);
 
   setWindowTitle(tr("Fortune Client"));
@@ -181,6 +191,14 @@ void Client::dataReceived()
 				message.indexOf(")") - message.indexOf("(") - 1);
     QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "(Me)");
     onlineUsers->setText(showing_users);
+    //and change icon
+    QPixmap image;
+    if (image.load(QString::fromStdString("images/online.png"))) {
+      m_status->setPixmap(image);
+      debugInfo("Icon changed!");
+    }
+    //and disable server fields
+    enableServerFields(false);
   } else {
     QString dest;
     QString content = filterMessage(dest,message);
@@ -304,6 +322,7 @@ void Client::nowOnline() {
   //online variable
   m_online = true;
   debugInfo("Success!");
+  debugInfo("Changing icon status...");
 }
 
 void Client::nowOffline() {
@@ -345,6 +364,12 @@ void Client::getOffline() {
     //and disable message field
     messageLineEdit->setEnabled(false);
     messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
+    //set icon
+    QPixmap image;
+    if (image.load("images/offline.png")) {
+      m_status->setPixmap(image);
+    } else m_status->setText("Error loading icon");
+    enableServerFields(true);
   } else {
     DLOG (INFO) << "User already offline";
   }
@@ -363,8 +388,9 @@ void Client::setData(bool debug_mode,
 		     std::string ip,
 		     std::string port) {
   m_debug = debug_mode;
-  if (m_debug)
-    DLOG (INFO) << "Debug mode is enabled";
+  if (m_debug) {
+    checkbox->toggle();
+  }
   else
     DLOG (INFO) << "Debug mode is disabled";
 
@@ -388,4 +414,22 @@ void Client::changeDebugMode(bool toggled) {
     DLOG (INFO) << "Debug mode enabled";
   else
     DLOG (INFO) << "Debug mode disabled";
+}
+
+void Client::enableServerFields(bool enabled) {
+  if (!enabled) { 
+    hostLineEdit->setStyleSheet("background-color: #E0E0E0;");
+    hostLineEdit->setEnabled(false);
+    portLineEdit->setStyleSheet("background-color: #E0E0E0;");
+    portLineEdit->setEnabled(false);
+    usernameLineEdit->setStyleSheet("background-color: #E0E0E0;");
+    usernameLineEdit->setEnabled(false);
+  } else {
+    hostLineEdit->setStyleSheet("background-color: #FFFFFF;");
+    hostLineEdit->setEnabled(true);
+    portLineEdit->setStyleSheet("background-color: #FFFFFF;");
+    portLineEdit->setEnabled(true);
+    usernameLineEdit->setStyleSheet("background-color: #FFFFFF;");
+    usernameLineEdit->setEnabled(true);
+  }
 }

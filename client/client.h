@@ -14,6 +14,7 @@ class QPushButton;
 class QTcpSocket;
 class QNetworkSession;
 class QCheckBox;
+class QPixmap;
 
 static const int ENTER = 16777220;
 
@@ -43,12 +44,14 @@ class Client : public QDialog
     void keyPressEvent(QKeyEvent *event);
     QString filterMessage(QString& dest, QString data);
     void debugInfo(const QString& info);
-    
+    void enableServerFields(bool enabled);
  private:
     QLabel *hostLabel;
     QLabel *portLabel;
     QLabel *messageLabel;
     QLabel *m_username;
+    QLabel *m_connection_status;
+    QLabel *m_status;
     QTextEdit *m_chat;
     QTextEdit *onlineUsers;
     QLineEdit *hostLineEdit;
@@ -59,7 +62,7 @@ class Client : public QDialog
     QPushButton *getFortuneButton;
     QPushButton *quitButton;
     QDialogButtonBox *buttonBox;
-
+    QCheckBox *checkbox;
     QTcpSocket *m_connection_socket;
     QTcpSocket *m_transmission_socket;
     QString currentFortune;
