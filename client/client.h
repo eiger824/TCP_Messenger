@@ -15,6 +15,7 @@ class QTcpSocket;
 class QNetworkSession;
 class QCheckBox;
 class QPixmap;
+class QComboBox;
 
 static const int ENTER = 16777220;
 
@@ -70,6 +71,7 @@ class Client : public QDialog
     bool m_online;
     bool m_debug;
     QNetworkSession *networkSession;
+    QComboBox *m_box;
 };
 
 #endif

@@ -102,6 +102,9 @@ Client::Client(QWidget *parent)
 
   checkbox = new QCheckBox("Enable debug messages on background", this);
   connect(checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
+
+  m_box = new QComboBox;
+  m_box->addItem("Select from list...");
   
   QGridLayout *mainLayout = new QGridLayout;
   mainLayout->addWidget(hostLabel, 0, 0);
@@ -114,7 +117,7 @@ Client::Client(QWidget *parent)
   mainLayout->addWidget(m_status, 3, 1);
   mainLayout->addWidget(buttonBox, 4, 0, 1, 2);
   mainLayout->addWidget(new QLabel("Currently online users:"), 5, 0);
-  mainLayout->addWidget(onlineUsers, 6, 0);
+  mainLayout->addWidget(m_box, 6, 0);
   mainLayout->addWidget(checkbox, 6, 1);
   mainLayout->addWidget(m_chat, 7, 0, 1, 2, Qt::AlignCenter);
   mainLayout->addWidget(messageLabel, 8, 0);
@@ -190,7 +193,9 @@ void Client::dataReceived()
     QString users = message.mid(message.indexOf("(") + 1,
 				message.indexOf(")") - message.indexOf("(") - 1);
     QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "(Me)");
+    m_box->addItems(showing_users.split(13));
     onlineUsers->setText(showing_users);
+    debugInfo("Online users:" + showing_users);
     //and change icon
     QPixmap image;
     if (image.load(QString::fromStdString("images/online.png"))) {
