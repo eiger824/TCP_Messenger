@@ -13,6 +13,7 @@ class QTextEdit;
 class QPushButton;
 class QTcpSocket;
 class QNetworkSession;
+class QCheckBox;
 
 static const int ENTER = 16777220;
 
@@ -36,6 +37,7 @@ class Client : public QDialog
     void getOnline();
     void nowOffline();
     void getOffline();
+    void changeDebugMode(bool toggled);
 
  private:
     void keyPressEvent(QKeyEvent *event);

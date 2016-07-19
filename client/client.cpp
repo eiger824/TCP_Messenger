@@ -92,6 +92,9 @@ Client::Client(QWidget *parent)
   connect(m_connection_socket, SIGNAL(disconnected()), this,
 	  SLOT(nowOffline()));
 
+  QCheckBox *checkbox = new QCheckBox("Enable debug messages on background", this);
+  connect(checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
+  
   QGridLayout *mainLayout = new QGridLayout;
   mainLayout->addWidget(hostLabel, 0, 0);
   mainLayout->addWidget(hostLineEdit, 0, 1);
@@ -100,8 +103,9 @@ Client::Client(QWidget *parent)
   mainLayout->addWidget(m_username, 2, 0);
   mainLayout->addWidget(usernameLineEdit, 2, 1);
   mainLayout->addWidget(buttonBox, 3, 0, 1, 2);
-  mainLayout->addWidget(new QLabel("Currently online users:"), 4, 0, 1, 2);
-  mainLayout->addWidget(onlineUsers, 5, 0, 1, 2);
+  mainLayout->addWidget(new QLabel("Currently online users:"), 4, 0);
+  mainLayout->addWidget(onlineUsers, 5, 0);
+  mainLayout->addWidget(checkbox, 5, 1);
   mainLayout->addWidget(m_chat, 6, 0, 1, 2, Qt::AlignCenter);
   mainLayout->addWidget(messageLabel, 7, 0);
   mainLayout->addWidget(messageLineEdit, 7, 1);
@@ -376,4 +380,12 @@ void Client::debugInfo(const QString& info) {
   if (m_debug) {
     DLOG (INFO) << info.toStdString();
   }
+}
+
+void Client::changeDebugMode(bool toggled) {
+  m_debug = toggled;
+  if (m_debug)
+    DLOG (INFO) << "Debug mode enabled";
+  else
+    DLOG (INFO) << "Debug mode disabled";
 }
