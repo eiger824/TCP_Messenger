@@ -178,12 +178,20 @@ void Server::acceptUser() {
 	  m_online_users.append(temp);
 	}
       } else {
-	index = getIndexOfUEIp(socket->peerAddress().toString());
-	if (index != -1) {
-	  temp = m_online_users.at(index);
-	  temp.name = temp_name;
-	  m_online_users.replace(index,temp);
-	}
+	LOG (ERROR) << "User already exists on server. Notifying user...";
+	//inform user of currently online users
+	QByteArray block;
+	QDataStream out(&block, QIODevice::WriteOnly);
+	out.setVersion(QDataStream::Qt_4_0);
+	out << (quint16)0;
+	out << QString("ue_error(Existing user on server. Choose other username);");
+	out.device()->seek(0);
+	out << (quint16)(block.size() - sizeof(quint16));
+	DLOG (INFO) <<"Sending error message to UE ...\n";
+	socket->write(block);
+	//reset blocksize
+	blockSize = 0;
+	return;
       }
       DLOG (INFO) << "New user is online: " << temp;
       debugInfo("Nr. online users: " + QString::number(m_online_users.size()));

@@ -207,6 +207,15 @@ void Client::dataReceived()
     }
     //and disable server fields
     enableServerFields(false);
+  } else if (message.contains("ue_error(")) {
+    QMessageBox::information(this, tr("Error"),
+			     tr("The connection was refused by the peer. "
+				"A username matching yours was already found "
+				"on the server on the same IP. "
+				"Choose a different username."));
+    enableGetFortuneButton();
+    m_online = false;
+    blockSize = 0;
   } else {
     QString dest;
     QString content = filterMessage(dest,message);
