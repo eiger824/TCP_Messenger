@@ -190,7 +190,7 @@ void Client::dataReceived()
   if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
     QString users = message.mid(message.indexOf("(") + 1,
 				message.indexOf(")") - message.indexOf("(") - 1);
-    QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "(Me)");
+    QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "[Me]");
     QStringList userlist = showing_users.split('-');
     m_box->addItems(userlist);
     debugInfo("Online users:" + showing_users);
@@ -220,7 +220,6 @@ void Client::dataReceived()
     QString dest;
     QString content = filterMessage(dest,message);
     DLOG (INFO) << "Message received: " << content.toStdString();
-    
     m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
     //update qmap object for current user
     QString user = m_box->itemText(m_box->currentIndex());
@@ -409,8 +408,7 @@ QString Client::filterMessage(QString& dest, QString data) {
   //    ue_message(message);ue_dest(dest);
   //This function extracts both dest and message
   dest = data.mid(data.indexOf("(",12) + 1, data.lastIndexOf(")") - data.indexOf("(",12) - 1);
-  DLOG (INFO) << "incoming data: " << data.toStdString();
-  DLOG (INFO) << dest.toStdString();
+  debugInfo("Parsed dest:" + dest);
   return data.mid(data.indexOf("(") + 1, data.indexOf(")") - data.indexOf("(") - 1);
 }
 

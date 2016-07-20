@@ -117,9 +117,11 @@ void Server::sessionOpened()
 }
 
 void Server::acceptUser() {
-  debugInfo("New incoming connection");
   //to be called every time a new connection is received
   QTcpSocket *socket = tcpServer->nextPendingConnection();
+  debugInfo("New incoming connection, from IP " +
+	    socket->peerAddress().toString() +
+	    " and port: " + QString::number(socket->peerPort()));
   //check if ip is registered
   if (!isThisIpRegistered(socket->peerAddress().toString())) {
     //then parse user
@@ -128,7 +130,7 @@ void Server::acceptUser() {
     new_ue.ip = socket->peerAddress().toString();
     new_ue.port = socket->peerPort();
     m_online_users.append(new_ue);
-    debugInfo("New UE registered!");
+    debugInfo("New empty UE registered!");
   } else {
     debugInfo("user is transmitting either its name or data");
     socket->waitForReadyRead(1000);
@@ -151,6 +153,7 @@ void Server::acceptUser() {
     in >> message;
     
     debugInfo("Message: [" + message + "]");
+    
     //step to register UE name to server after first connection
     if (message.contains("ue_name")) {
       QString temp_name = message.mid(8, message.lastIndexOf(")") - message.lastIndexOf("(") - 1);
@@ -275,7 +278,7 @@ void Server::unregisterUser() {
 
 QString Server::filterMessage(QString& dest, QString data) {
   //currently, a data structure has the following format
-  //    ue_message(message);ue_dest(dest);
+  //    ue_message(message);ue_from(sender);ue_dest(receiver);
   //This function extracts both dest and message
   dest = data.mid(data.lastIndexOf("(") + 1, data.lastIndexOf(")") - data.lastIndexOf("(") - 1);
   return data.mid(data.indexOf("(") + 1, data.indexOf(")") - data.indexOf("(") - 1);
