@@ -5,6 +5,8 @@
 
 #include "server.h"
 
+using namespace tcp_messenger;
+
 void displayHelp() {
   std::cout << "Usage: ./server <args>\n";
   std::cout << "Arg. list:\n";

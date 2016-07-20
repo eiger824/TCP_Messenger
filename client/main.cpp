@@ -4,6 +4,8 @@
 #include <string>
 #include <stdexcept>
 
+using namespace tcp_messenger;
+
 void displayHelp() {
   std::cout << "Usage: ./client <args>\n";
   std::cout << "Arg. list:\n";
