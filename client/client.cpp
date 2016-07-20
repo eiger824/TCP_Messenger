@@ -99,6 +99,7 @@ Client::Client(QWidget *parent)
 
   m_box = new QComboBox;
   m_box->addItem("Select from list...");
+  connect(m_box, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChangedSlot(int)));
   
   QGridLayout *mainLayout = new QGridLayout;
   mainLayout->addWidget(hostLabel, 0, 0);
@@ -110,7 +111,7 @@ Client::Client(QWidget *parent)
   mainLayout->addWidget(m_connection_status, 3, 0);
   mainLayout->addWidget(m_status, 3, 1);
   mainLayout->addWidget(buttonBox, 4, 0, 1, 2);
-  mainLayout->addWidget(new QLabel("Currently online users:"), 5, 0);
+  mainLayout->addWidget(new QLabel("Select user from list:"), 5, 0);
   mainLayout->addWidget(m_box, 6, 0);
   mainLayout->addWidget(checkbox, 6, 1);
   mainLayout->addWidget(m_chat, 7, 0, 1, 2, Qt::AlignCenter);
@@ -186,8 +187,14 @@ void Client::dataReceived()
     QString users = message.mid(message.indexOf("(") + 1,
 				message.indexOf(")") - message.indexOf("(") - 1);
     QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "(Me)");
-    m_box->addItems(showing_users.split(13));
+    QStringList userlist = showing_users.split('-');
+    m_box->addItems(userlist);
     debugInfo("Online users:" + showing_users);
+    //create qmaps with empty conversations
+    for (auto user: userlist) {
+      m_convers[user] = "";
+    }
+    debugInfo("Created qmap object with empty conversations");
     //and change icon
     QPixmap image;
     if (image.load(QString::fromStdString("images/online.png"))) {
@@ -202,6 +209,11 @@ void Client::dataReceived()
     DLOG (INFO) << "Message received: " << content.toStdString();
     
     m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
+    //update qmap object for current user
+    QString user = m_box->itemText(m_box->currentIndex());
+    int nr = m_convers.remove(user);
+    m_convers[user] = m_chat->toPlainText();
+    debugInfo("Updated qmap object");
     getFortuneButton->setEnabled(true);
   }
 
@@ -276,7 +288,12 @@ void Client::keyPressEvent(QKeyEvent *event) {
       m_chat->setText(m_chat->toPlainText() + "\nMe: " + message);
     else
       m_chat->setText("Me: " + message);
-
+    
+    //update qmap object for current user
+    QString user = m_box->itemText(m_box->currentIndex());
+    int nr = m_convers.remove(user);
+    m_convers[user] = m_chat->toPlainText();
+    debugInfo("Updated qmap object");
     messageLineEdit->clear();
 
     //and send it to the server
@@ -313,9 +330,6 @@ void Client::nowOnline() {
 
   m_transmission_socket->write(block);
   
-  //and enable message field
-  messageLineEdit->setEnabled(true);
-  messageLineEdit->setStyleSheet("background-color: white;");
   //online variable
   m_online = true;
   debugInfo("Success!");
@@ -426,5 +440,21 @@ void Client::enableServerFields(bool enabled) {
     portLineEdit->setEnabled(true);
     usernameLineEdit->setStyleSheet("background-color: #FFFFFF;");
     usernameLineEdit->setEnabled(true);
+  }
+}
+
+void Client::currentIndexChangedSlot(int index) {
+  QString current_conver = m_box->itemText(index);
+  m_chat->setText(m_convers[current_conver]);
+  debugInfo("New index: " + QString::number(index) + " (chatting with " + current_conver + ")");
+  debugInfo("Switched conversation");
+  if (index == 0) {
+    //disable message field
+    messageLineEdit->setEnabled(false);
+    messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
+  } else {
+    //disable message field
+    messageLineEdit->setEnabled(true);
+    messageLineEdit->setStyleSheet("background-color: #FFFFFF;");
   }
 }

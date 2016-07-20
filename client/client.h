@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QTcpSocket>
 #include <QKeyEvent>
+#include <QMap>
 #include <string>
 
 class QDialogButtonBox;
@@ -16,6 +17,7 @@ class QNetworkSession;
 class QCheckBox;
 class QPixmap;
 class QComboBox;
+
 
 static const int ENTER = 16777220;
 
@@ -40,6 +42,7 @@ class Client : public QDialog
     void nowOffline();
     void getOffline();
     void changeDebugMode(bool toggled);
+    void currentIndexChangedSlot(int index);
 
  private:
     void keyPressEvent(QKeyEvent *event);
@@ -71,6 +74,7 @@ class Client : public QDialog
     bool m_debug;
     QNetworkSession *networkSession;
     QComboBox *m_box;
+    QMap<QString,QString>m_convers;
 };
 
 #endif
