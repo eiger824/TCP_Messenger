@@ -332,7 +332,6 @@ namespace tcp_messenger {
       debugInfo( "Transmitting message...");
       m_transmission_socket->write(block);
       DLOG (INFO) << "Message sent to server!";
-      m_transmission_socket->disconnectFromHost();
     }
   }
 
