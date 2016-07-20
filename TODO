@@ -1,0 +1,5 @@
+TO DO:
+Chat screen: switch from QTextEdit to a Layout with labels and pixmaps, easier to implement the ACK things
+include more fields in the sending stream, for example ue_from(sender) (important)
+ability to update m_online_users<const UE&> list everytime a user changes port, easier to redirect messages from server
+investigate sockets behavior
