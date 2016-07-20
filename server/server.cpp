@@ -188,6 +188,7 @@ void Server::acceptUser() {
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	DLOG (INFO) <<"Sending error message to UE ...\n";
+	logLabel->setText(logLabel->toPlainText() + "\nError: attempted connection with same username from same IP. Sending error to client...");
 	socket->write(block);
 	//reset blocksize
 	blockSize = 0;
