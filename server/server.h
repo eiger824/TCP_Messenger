@@ -33,6 +33,10 @@ class Server : public QDialog
    void unregisterUser();
    QString filterMessage(QString& dest, QString data);
    void debugInfo(const QString& info);
+   bool isThisIpRegistered(const QString& ip);
+   bool isThisNameRegistered(const QString& name);
+   int getIndexOfUEName(const QString& name);
+   int getIndexOfUEIp(const QString& ip);
  private:
    QVBoxLayout *mainLayout;
    QLabel *statusLabel;

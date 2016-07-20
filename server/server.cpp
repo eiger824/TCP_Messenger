@@ -120,29 +120,15 @@ void Server::acceptUser() {
   debugInfo("New incoming connection");
   //to be called every time a new connection is received
   QTcpSocket *socket = tcpServer->nextPendingConnection();
-  //parse user
-  UE new_ue;
-  new_ue.name = "";
-  new_ue.ip = socket->peerAddress().toString();
-  new_ue.port = socket->peerPort();
-  if (m_online_users.isEmpty()) {
+  //check if ip is registered
+  if (!isThisIpRegistered(socket->peerAddress().toString())) {
+    //then parse user
+    UE new_ue;
+    new_ue.name = "";
+    new_ue.ip = socket->peerAddress().toString();
+    new_ue.port = socket->peerPort();
     m_online_users.append(new_ue);
-  }
-  if (m_online_users.at(0).ip != new_ue.ip) {
-    m_online_users.append(new_ue);
-    if (new_ue.name != "") {
-      if (logLabel->toPlainText() != "") {
-	logLabel->setText(logLabel->toPlainText() + "\n[" + new_ue.name + "]@" +
-			  new_ue.ip + ":" +
-			  QString::number(new_ue.port) + " is now online.");
-      } else {
-	logLabel->setText("[" + new_ue.name + "]@" +
-			  new_ue.ip + ":" +
-			  QString::number(new_ue.port) + " is now online.");
-      }
-    }
-    //Don't close this socket, which is the server-end of the connection-socket object
-    //socket->close();
+    debugInfo("New UE registered!");
   } else {
     debugInfo("user is transmitting either its name or data");
     socket->waitForReadyRead(1000);
@@ -164,15 +150,43 @@ void Server::acceptUser() {
     QString message;
     in >> message;
     
-    if (m_debug)
-      DLOG (INFO) <<"Message: [" << message.toStdString() << "]" ;
+    debugInfo("Message: [" + message + "]");
+    //step to register UE name to server after first connection
     if (message.contains("ue_name")) {
       QString temp_name = message.mid(8, message.lastIndexOf(")") - message.lastIndexOf("(") - 1);
-      UE temp = m_online_users.last();
-      temp.name = temp_name;
-      m_online_users.replace(m_online_users.size() -1,temp);
-      DLOG (INFO) <<"New user is online: " << temp;
-      debugInfo("Size of list: " + QString::number(m_online_users.size()));
+      if (temp_name.isEmpty()) {
+	return;
+      }
+      UE temp;
+      int index;
+      if (!isThisNameRegistered(temp_name)) {
+	//case for same ip, different name
+	debugInfo("New user " + temp_name + " connected from same IP. Registering user.");
+	temp.name = temp_name;
+	temp.ip = socket->peerAddress().toString();
+	temp.port = socket->peerPort();
+	index = getIndexOfUEIp(socket->peerAddress().toString());
+	if (m_online_users.at(index).name.isEmpty()) {
+	  //first time, when username is still empty
+	  if (index != -1) {
+	    temp = m_online_users.at(index);
+	    temp.name = temp_name;
+	    m_online_users.replace(index,temp);
+	  }
+	} else {
+	  //same ip but different username, then append new UE
+	  m_online_users.append(temp);
+	}
+      } else {
+	index = getIndexOfUEIp(socket->peerAddress().toString());
+	if (index != -1) {
+	  temp = m_online_users.at(index);
+	  temp.name = temp_name;
+	  m_online_users.replace(index,temp);
+	}
+      }
+      DLOG (INFO) << "New user is online: " << temp;
+      debugInfo("Nr. online users: " + QString::number(m_online_users.size()));
       if (logLabel->toPlainText() != "") {
 	logLabel->setText(logLabel->toPlainText() + "\n[" + temp.name + "]@" +
 			  temp.ip + ":" +
@@ -180,13 +194,15 @@ void Server::acceptUser() {
       } else {
 	logLabel->setText(logLabel->toPlainText() + "[" + temp.name + "]@" +
 			  temp.ip + ":" +
-			QString::number(temp.port) + " is now online.");
+			  QString::number(temp.port) + " is now online.");
       }
-      if (onlineUsers->toPlainText() != "") {
-	onlineUsers->setText("\n" + temp.name);
-      } else {
-	onlineUsers->setText(temp.name);
+      //parse online users
+      QString users;
+      for (auto user: m_online_users) {
+	users += user.name + "\n";
       }
+      users.chop(1);
+      onlineUsers->setText(users);
       qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
 								      + QString::number(m_online_users.size()) + "):");
       //inform user of currently online users
@@ -206,9 +222,9 @@ void Server::acceptUser() {
       socket->write(block);
     } else if (message.contains("ue_disconnect")) {
       unregisterUser();
-    } else { //regular message
+    } else if (message.contains("ue_message")) { //regular message
       logLabel->setText(logLabel->toPlainText() + "\n" + message);
-      //and send it back to the user (for now!!)
+      //and send it back to the user
       debugInfo("Going to resend message to dest client: ["
 		+ message + "]");
       QString content = message.mid(message.indexOf("(") + 1, message.indexOf(")") - message.indexOf("(") - 1);
@@ -265,6 +281,50 @@ void Server::setDebugMode(bool debug_mode) {
 void Server::debugInfo(const QString& info) {
   if (m_debug)
     DLOG (INFO) << info.toStdString();
+}
+
+bool Server::isThisIpRegistered(const QString& ip) {
+  for (auto user: m_online_users) {
+    if (user.ip == ip) {
+      debugInfo(ip + " found a match, already registered.");
+      return true;
+    }
+  }
+  debugInfo(ip + " did not found a match, going to register.");
+  return false;
+}
+
+bool Server::isThisNameRegistered(const QString& name) {
+  for (auto user: m_online_users) {
+    if (user.name == name) {
+      debugInfo(name + " found a match, already registered.");
+      return true;
+    }
+  }
+  debugInfo(name + " did not found a match, going to register.");
+  return false;
+}
+
+int Server::getIndexOfUEName(const QString& name) {
+  for (unsigned i = 0; i < m_online_users.size(); ++i) {
+    if (m_online_users.at(i).name == name) {
+      debugInfo(name + " found a match at index: " + QString::number(i));
+      return i;
+    }
+  }
+  debugInfo(name + " was not found on list. Returning -1.");
+  return -1;
+}
+
+int Server::getIndexOfUEIp(const QString& ip) {
+  for (unsigned i = 0; i < m_online_users.size(); ++i) {
+    if (m_online_users.at(i).ip == ip) {
+      debugInfo(ip + " found a match at index: " + QString::number(i));
+      return i;
+    }
+  }
+  debugInfo(ip + " was not found on list. Returning -1.");
+  return -1;
 }
 
 std::ostream &operator<<(std::ostream &os, const UE& user) {
