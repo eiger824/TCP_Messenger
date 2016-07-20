@@ -43,6 +43,7 @@ class Client : public QDialog
     void getOffline();
     void changeDebugMode(bool toggled);
     void currentIndexChangedSlot(int index);
+    void sendMessage();
 
  private:
     void keyPressEvent(QKeyEvent *event);

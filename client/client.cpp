@@ -22,7 +22,7 @@ Client::Client(QWidget *parent)
   } else m_status->setText("Error loading icon");
   
   m_chat = new QTextEdit;
-  m_chat->setFixedSize(400,400);
+  m_chat->setFixedSize(this->width() - 80, this->height() - 100);
   m_chat->setEnabled(true);
   m_chat->setReadOnly(true);
   m_chat->setStyleSheet("border: 2px solid black; background-color: white; color: black;");
@@ -100,6 +100,9 @@ Client::Client(QWidget *parent)
   m_box = new QComboBox;
   m_box->addItem("Select from list...");
   connect(m_box, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChangedSlot(int)));
+
+  QPushButton *send = new QPushButton(tr("&Send"));
+  connect(send, SIGNAL(clicked()), this, SLOT(sendMessage()));
   
   QGridLayout *mainLayout = new QGridLayout;
   mainLayout->addWidget(hostLabel, 0, 0);
@@ -117,6 +120,7 @@ Client::Client(QWidget *parent)
   mainLayout->addWidget(m_chat, 7, 0, 1, 2, Qt::AlignCenter);
   mainLayout->addWidget(messageLabel, 8, 0);
   mainLayout->addWidget(messageLineEdit, 8, 1);
+  mainLayout->addWidget(send, 8, 2);
   mainLayout->addWidget(statusLabel, 9, 0, 1, 2);
   setLayout(mainLayout);
 
@@ -280,9 +284,16 @@ void Client::sessionOpened()
 }
 
 void Client::keyPressEvent(QKeyEvent *event) { 
-  if (event->key() == ENTER &&
-      !messageLineEdit->toPlainText().isEmpty() &&
+  if (event->key() == ENTER  &&
       messageLineEdit->hasFocus()) {
+    sendMessage();
+  }
+}
+
+void Client::sendMessage() {
+  debugInfo("Message slot called");
+  if (!messageLineEdit->toPlainText().isEmpty() &&
+      messageLineEdit->isEnabled()) {
     QString message = messageLineEdit->toPlainText();
     if (m_chat->toPlainText() != "") 
       m_chat->setText(m_chat->toPlainText() + "\nMe: " + message);
