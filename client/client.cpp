@@ -325,7 +325,7 @@ void Client::sendMessage() {
     QDataStream out(&block, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_4_0);
     out << (quint16)0;
-    out << "ue_message(" + message + ");ue_dest(PC_Santi_v2);";
+    out << "ue_message(" + message + ");ue_dest(" + user + ");";
     out.device()->seek(0);
     out << (quint16)(block.size() - sizeof(quint16));
     debugInfo( "Transmitting message...");
@@ -408,7 +408,9 @@ QString Client::filterMessage(QString& dest, QString data) {
   //currently, a data structure has the following format
   //    ue_message(message);ue_dest(dest);
   //This function extracts both dest and message
-  dest = data.mid(data.lastIndexOf("(") + 1, data.lastIndexOf(")") - data.lastIndexOf("(") - 1);
+  dest = data.mid(data.indexOf("(",12) + 1, data.lastIndexOf(")") - data.indexOf("(",12) - 1);
+  DLOG (INFO) << "incoming data: " << data.toStdString();
+  DLOG (INFO) << dest.toStdString();
   return data.mid(data.indexOf("(") + 1, data.indexOf(")") - data.indexOf("(") - 1);
 }
 

@@ -188,7 +188,9 @@ void Server::acceptUser() {
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	DLOG (INFO) <<"Sending error message to UE ...\n";
-	logLabel->setText(logLabel->toPlainText() + "\nError: attempted connection with same username from same IP. Sending error to client...");
+	logLabel->setText(logLabel->toPlainText()
+			  + "\nError: attempted connection with same "
+			  "username from same IP. Sending error to client...");
 	socket->write(block);
 	//reset blocksize
 	blockSize = 0;
@@ -237,7 +239,7 @@ void Server::acceptUser() {
       debugInfo("Going to resend message to dest client: ["
 		+ message + "]");
       QString content = message.mid(message.indexOf("(") + 1, message.indexOf(")") - message.indexOf("(") - 1);
-      QString dest = message.mid(message.lastIndexOf("(") + 1, message.lastIndexOf(")") - message.lastIndexOf("(") - 1);
+      QString dest = message.mid(message.indexOf("(",12) + 1, message.lastIndexOf(")") - message.indexOf("(",12) - 1);
       debugInfo("(message,dest) = (" + content + ","
 		+ dest + ")");
       QByteArray block;
