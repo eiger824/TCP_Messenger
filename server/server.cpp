@@ -272,17 +272,14 @@ namespace tcp_messenger {
       } else if (message.contains("ue_message")) { //regular message
 	logLabel->setText(logLabel->toPlainText() + "\n" + message);
 	//and send it back to the user
-	debugInfo("Going to resend message to dest client: ["
-		  + message + "]");
-	QString content = message.mid(message.indexOf("(") + 1, message.indexOf(")") - message.indexOf("(") - 1);
-	QString dest = message.mid(message.indexOf("(",12) + 1, message.lastIndexOf(")") - message.indexOf("(",12) - 1);
-	debugInfo("(message,dest) = (" + content + ","
-		  + dest + ")");
+	debugInfo("Going to resend message to dest client: [" + message + "]");
+	QString dest,from;
+	QString content = filterMessage(dest,from,message);
 	QByteArray block;
 	QDataStream out(&block, QIODevice::WriteOnly);
 	out.setVersion(QDataStream::Qt_4_0);
 	out << (quint16)0;
-	out << QString("ue_message(" + content + ");ue_dest(" + dest + ");");
+	out << message;
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	if (dest.contains("[Me]")) {
@@ -338,12 +335,22 @@ namespace tcp_messenger {
     }
   }
 
-  QString Server::filterMessage(QString& dest, QString data) {
+  QString Server::filterMessage(QString& dest, QString &from, QString data) {
     //currently, a data structure has the following format
-    //    ue_message(message);ue_from(sender);ue_dest(receiver);
+    //    ue_message(message);ue_dest(dest);ue_from(sender);
     //This function extracts both dest and message
-    dest = data.mid(data.lastIndexOf("(") + 1, data.lastIndexOf(")") - data.lastIndexOf("(") - 1);
-    return data.mid(data.indexOf("(") + 1, data.indexOf(")") - data.indexOf("(") - 1);
+    int i1 = data.indexOf("ue_message") + QString("ue_message").size() + 1;
+    int i2 = data.indexOf("ue_dest") - 2;
+    int i3 = data.indexOf("ue_dest") + QString("ue_dest").size() + 1;
+    int i4 = data.indexOf("ue_from") - 2;
+    int i5 = data.indexOf("ue_from") + QString("ue_from").size() + 1;
+    int i6 = data.lastIndexOf(";") - 1;
+    dest = data.mid(i3, i4 - i3) ;
+    from = data.mid(i5, i6 - i5);
+    debugInfo("Parsed dest:" + dest);
+    debugInfo("Parsed dender:" + from);
+    debugInfo("Parsed message:" + data.mid(i1, i2 - i1));
+    return data.mid(i1, i2 - i1);
   }
 
   void Server::setDebugMode(bool debug_mode) {

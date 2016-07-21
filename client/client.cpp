@@ -223,8 +223,8 @@ namespace tcp_messenger {
       m_online = false;
       blockSize = 0;
     } else {
-      QString dest;
-      QString content = filterMessage(dest,message);
+      QString dest,from;
+      QString content = filterMessage(dest,from,message);
       DLOG (INFO) << "Message received: " << content.toStdString();
       m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
       //update qmap object for current user
@@ -330,7 +330,7 @@ namespace tcp_messenger {
       QDataStream out(&block, QIODevice::WriteOnly);
       out.setVersion(QDataStream::Qt_4_0);
       out << (quint16)0;
-      out << "ue_message(" + message + ");ue_dest(" + user + ");";
+      out << "ue_message(" + message + ");ue_dest(" + user + ");ue_from(" + usernameLineEdit->text() + ");";
       out.device()->seek(0);
       out << (quint16)(block.size() - sizeof(quint16));
       debugInfo( "Transmitting message...");
@@ -426,13 +426,22 @@ namespace tcp_messenger {
     }
   }
 
-  QString Client::filterMessage(QString& dest, QString data) {
+  QString Client::filterMessage(QString& dest, QString& from, QString data) {
     //currently, a data structure has the following format
-    //    ue_message(message);ue_dest(dest);
+    //    ue_message(message);ue_dest(dest);ue_from(sender);
     //This function extracts both dest and message
-    dest = data.mid(data.indexOf("(",12) + 1, data.lastIndexOf(")") - data.indexOf("(",12) - 1);
+    int i1 = data.indexOf("ue_message") + QString("ue_message").size() + 1;
+    int i2 = data.indexOf("ue_dest") - 2;
+    int i3 = data.indexOf("ue_dest") + QString("ue_dest").size() + 1;
+    int i4 = data.indexOf("ue_from") - 2;
+    int i5 = data.indexOf("ue_from") + QString("ue_from").size() + 1;
+    int i6 = data.lastIndexOf(";") - 1;
+    dest = data.mid(i3, i4 - i3);
+    from = data.mid(i5, i6 - i5);
     debugInfo("Parsed dest:" + dest);
-    return data.mid(data.indexOf("(") + 1, data.indexOf(")") - data.indexOf("(") - 1);
+    debugInfo("Parsed sender:" + from);
+    debugInfo("Parsed message:" + data.mid(i1, i2 - i1));
+    return data.mid(i1, i2 - i1);
   }
 
   void Client::setData(bool debug_mode,
@@ -530,34 +539,36 @@ namespace tcp_messenger {
       debugInfo("Message: [" + message + "]");
 
       if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
-      QString users = message.mid(message.indexOf("(") + 1,
-				  message.indexOf(")") - message.indexOf("(") - 1);
-      QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "[Me]");
-      QStringList userlist = showing_users.split('-');
-      m_box->clear();
-      userlist.insert(0, "Select from list...");
-      m_box->addItems(userlist);
-      debugInfo("Online users:" + showing_users);
-      //create qmaps with empty conversations
-      for (auto user: userlist) {
-	m_convers[user] = "";
-      }
-      debugInfo("Created qmap object with empty conversations");
-      //and change icon
-      QPixmap image;
-      if (image.load(QString::fromStdString("images/online.png"))) {
-	m_status->setPixmap(image);
-	debugInfo("Icon changed!");
-      }
-      //and disable server fields
-      enableServerFields(false);
+	QString users = message.mid(message.indexOf("(") + 1,
+				    message.indexOf(")") - message.indexOf("(") - 1);
+	QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "[Me]");
+	QStringList userlist = showing_users.split('-');
+	m_box->clear();
+	userlist.insert(0, "Select from list...");
+	m_box->addItems(userlist);
+	debugInfo("Online users:" + showing_users);
+	//create qmaps with empty conversations
+	for (auto user: userlist) {
+	  m_convers[user] = "";
+	}
+	debugInfo("Created qmap object with empty conversations");
+	//and change icon
+	QPixmap image;
+	if (image.load(QString::fromStdString("images/online.png"))) {
+	  m_status->setPixmap(image);
+	  debugInfo("Icon changed!");
+	}
+	//and disable server fields
+	enableServerFields(false);
       } else {
-	QString dest;
-	QString content = filterMessage(dest, message);
+	QString dest, from;
+	QString content = filterMessage(dest, from, message);
 	if (m_chat->toPlainText() != "")
-	  m_chat->setText(m_chat->toPlainText() + "\n" + content);
+	  m_chat->setText(m_chat->toPlainText() + "\n" + from + ":" + content);
 	else
-	  m_chat->setText(content);
+	  m_chat->setText(from + ":" + content);
+	//next, change corresponding label and update text buffers
+	
       }
     }
     blockSize=0;

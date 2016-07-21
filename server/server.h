@@ -33,7 +33,7 @@ namespace tcp_messenger {
       void acceptUser();
   private:
       void unregisterUser();
-      QString filterMessage(QString& dest, QString data);
+      QString filterMessage(QString& dest, QString& from, QString data);
       void debugInfo(const QString& info);
       bool isThisIpRegistered(const QString& ip);
       bool isThisNameRegistered(const QString& name);

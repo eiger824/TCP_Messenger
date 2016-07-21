@@ -50,7 +50,7 @@ namespace tcp_messenger {
 
   private:
       void keyPressEvent(QKeyEvent *event);
-      QString filterMessage(QString& dest, QString data);
+      QString filterMessage(QString& dest, QString& from, QString data);
       void debugInfo(const QString& info);
       void enableServerFields(bool enabled);
   private:
