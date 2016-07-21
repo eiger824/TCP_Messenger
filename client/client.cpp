@@ -8,12 +8,19 @@
 #include "client.h"
 
 namespace tcp_messenger {
-
-  static const quint16 LISTEN_PORT = 30500;
   
   Client::Client(QWidget *parent)
     :   QDialog(parent), networkSession(0)
   {
+    /*for testing purposes, remove
+    QString received = "ue_message(I love you);ue_dest(Ida);ue_from(Santi);ue_message_id(524);";
+    QString dest,fsend;
+    quint16 id;
+    DLOG (INFO) << filterMessage(dest,fsend,id,received).toStdString();
+    DLOG (INFO) << dest.toStdString();
+    DLOG (INFO) << fsend.toStdString();
+    DLOG (INFO) << id;
+    */
     hostLabel = new QLabel(tr("&Server name:"));
     portLabel = new QLabel(tr("S&erver port:"));
     messageLabel = new QLabel(tr("Mess&age to send:\n(CTRL + Enter to send)"));
@@ -224,7 +231,8 @@ namespace tcp_messenger {
       blockSize = 0;
     } else {
       QString dest,from;
-      QString content = filterMessage(dest,from,message);
+      quint16 id;
+      QString content = filterMessage(dest,from,id,message);
       DLOG (INFO) << "Message received: " << content.toStdString();
       m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
       //update qmap object for current user
@@ -313,7 +321,16 @@ namespace tcp_messenger {
 	m_chat->setText(m_chat->toPlainText() + "\nMe: " + message);
       else
 	m_chat->setText("Me: " + message);
-    
+
+      /*When we switch to qlabel layout, message ID will be generated
+       in constructor, so we will call it like this: 
+
+
+       unsigned int message_id = m_window->getLasgMessageID();
+
+      as of now, just create it here*/
+
+      unsigned int message_id = rand() & 1000 + 1;
       //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());
       int nr = m_convers.remove(user);
@@ -330,7 +347,11 @@ namespace tcp_messenger {
       QDataStream out(&block, QIODevice::WriteOnly);
       out.setVersion(QDataStream::Qt_4_0);
       out << (quint16)0;
-      out << "ue_message(" + message + ");ue_dest(" + user + ");ue_from(" + usernameLineEdit->text() + ");";
+      out << "ue_message(" + message +
+	");ue_dest(" + user +
+	");ue_from(" + usernameLineEdit->text() +
+	");ue_message_ID(" + QString::number(message_id) + ");";
+      
       out.device()->seek(0);
       out << (quint16)(block.size() - sizeof(quint16));
       debugInfo( "Transmitting message...");
@@ -426,20 +447,24 @@ namespace tcp_messenger {
     }
   }
 
-  QString Client::filterMessage(QString& dest, QString& from, QString data) {
+  QString Client::filterMessage(QString& dest, QString& from, quint16& id, QString data) {
     //currently, a data structure has the following format
-    //    ue_message(message);ue_dest(dest);ue_from(sender);
+    //    ue_message(message);ue_dest(dest);ue_from(sender);ue_message_id(id);
     //This function extracts both dest and message
     int i1 = data.indexOf("ue_message") + QString("ue_message").size() + 1;
     int i2 = data.indexOf("ue_dest") - 2;
     int i3 = data.indexOf("ue_dest") + QString("ue_dest").size() + 1;
     int i4 = data.indexOf("ue_from") - 2;
     int i5 = data.indexOf("ue_from") + QString("ue_from").size() + 1;
-    int i6 = data.lastIndexOf(";") - 1;
+    int i6 = data.indexOf("ue_message_id") - 2;
+    int i7 = data.indexOf("ue_message_id") + QString("ue_message_id").size() + 1;
+    int i8 = data.lastIndexOf(";") - 1;
     dest = data.mid(i3, i4 - i3);
     from = data.mid(i5, i6 - i5);
+    id = (quint16) data.mid(i7, i8 - i7).toInt();
     debugInfo("Parsed dest:" + dest);
     debugInfo("Parsed sender:" + from);
+    debugInfo("Parsed message ID:" + QString::number(id));
     debugInfo("Parsed message:" + data.mid(i1, i2 - i1));
     return data.mid(i1, i2 - i1);
   }
@@ -562,7 +587,8 @@ namespace tcp_messenger {
 	enableServerFields(false);
       } else {
 	QString dest, from;
-	QString content = filterMessage(dest, from, message);
+	quint16 id;
+	QString content = filterMessage(dest, from, id, message);
 	
 	//next, change corresponding label
 	int index = m_box->findText(from);

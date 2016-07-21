@@ -12,6 +12,7 @@ include_directories(system
 
 set(HEADERS_MOC
   client.h
+  definitions.hpp
   )
 qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 

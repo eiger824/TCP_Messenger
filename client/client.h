@@ -7,6 +7,8 @@
 #include <QMap>
 #include <string>
 
+#include "definitions.hpp"
+
 class QDialogButtonBox;
 class QLabel;
 class QLineEdit;
@@ -20,8 +22,6 @@ class QPixmap;
 class QComboBox;
 
 namespace tcp_messenger {
-
-  static const int ENTER = 16777220;
 
   class Client : public QDialog
   {
@@ -50,7 +50,7 @@ namespace tcp_messenger {
 
   private:
       void keyPressEvent(QKeyEvent *event);
-      QString filterMessage(QString& dest, QString& from, QString data);
+      QString filterMessage(QString& dest, QString& from, quint16& id, QString data);
       void debugInfo(const QString& info);
       void enableServerFields(bool enabled);
   private:
