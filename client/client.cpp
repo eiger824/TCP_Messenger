@@ -563,12 +563,20 @@ namespace tcp_messenger {
       } else {
 	QString dest, from;
 	QString content = filterMessage(dest, from, message);
+	
+	//next, change corresponding label
+	int index = m_box->findText(from);
+	if (index != -1)
+	  m_box->setCurrentIndex(index);
+	//and update text buffers
+	
 	if (m_chat->toPlainText() != "")
 	  m_chat->setText(m_chat->toPlainText() + "\n" + from + ":" + content);
 	else
 	  m_chat->setText(from + ":" + content);
-	//next, change corresponding label and update text buffers
-	
+
+	int nr = m_convers.remove(m_box->currentText());
+	m_convers[m_box->currentText()] = m_chat->toPlainText();
       }
     }
     blockSize=0;
