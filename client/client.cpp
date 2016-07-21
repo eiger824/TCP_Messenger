@@ -340,26 +340,6 @@ namespace tcp_messenger {
   }
 
   void Client::nowOnline() {
-    DLOG (INFO) << "Successfully connected to server. Sending user info";
-    blockSize = 0;
-    m_transmission_socket->abort();
-    m_transmission_socket->connectToHost(hostLineEdit->text(),
-					 portLineEdit->text().toInt());
-    QByteArray block;
-    QDataStream out(&block, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_4_0);
-    out << (quint16)0;
-    out << QString("ue_name(" + usernameLineEdit->text() + ")");
-    out.device()->seek(0);
-    out << (quint16)(block.size() - sizeof(quint16));
-
-    m_transmission_socket->write(block);
-  
-    //online variable
-    m_online = true;
-    debugInfo("Success!");
-    debugInfo("Changing icon status...");
-
     //start listening server
     quint16 listening_port = LISTEN_PORT;
     debugInfo("Attempting connection on port: " + QString::number(listening_port));
@@ -377,6 +357,25 @@ namespace tcp_messenger {
       close();
       return;
     }
+    
+    DLOG (INFO) << "Successfully connected to server. Sending user info";
+    blockSize = 0;
+    m_transmission_socket->abort();
+    m_transmission_socket->connectToHost(hostLineEdit->text(),
+					 portLineEdit->text().toInt());
+    QByteArray block;
+    QDataStream out(&block, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_4_0);
+    out << (quint16)0;
+    out << QString("ue_name(" + usernameLineEdit->text() + ");ue_rx_port(" + QString::number(listening_port) + ")");
+    out.device()->seek(0);
+    out << (quint16)(block.size() - sizeof(quint16));
+
+    m_transmission_socket->write(block);
+  
+    //online variable
+    m_online = true;
+    debugInfo("Success!");    
   }
 
   void Client::nowOffline() {
@@ -529,12 +528,37 @@ namespace tcp_messenger {
       in >> message;
     
       debugInfo("Message: [" + message + "]");
-      QString dest;
-      QString content = filterMessage(dest, message);
-      if (m_chat->toPlainText() != "")
-	m_chat->setText(m_chat->toPlainText() + "\n" + content);
-      else
-	m_chat->setText(content);
+
+      if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
+      QString users = message.mid(message.indexOf("(") + 1,
+				  message.indexOf(")") - message.indexOf("(") - 1);
+      QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "[Me]");
+      QStringList userlist = showing_users.split('-');
+      m_box->clear();
+      userlist.insert(0, "Select from list...");
+      m_box->addItems(userlist);
+      debugInfo("Online users:" + showing_users);
+      //create qmaps with empty conversations
+      for (auto user: userlist) {
+	m_convers[user] = "";
+      }
+      debugInfo("Created qmap object with empty conversations");
+      //and change icon
+      QPixmap image;
+      if (image.load(QString::fromStdString("images/online.png"))) {
+	m_status->setPixmap(image);
+	debugInfo("Icon changed!");
+      }
+      //and disable server fields
+      enableServerFields(false);
+      } else {
+	QString dest;
+	QString content = filterMessage(dest, message);
+	if (m_chat->toPlainText() != "")
+	  m_chat->setText(m_chat->toPlainText() + "\n" + content);
+	else
+	  m_chat->setText(content);
+      }
     }
     blockSize=0;
   }

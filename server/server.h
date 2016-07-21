@@ -17,7 +17,7 @@ namespace tcp_messenger {
   struct UE {
     QString name;
     QString ip;
-    quint16 port;
+    quint16 rx_port;
   };
 
   class Server : public QDialog

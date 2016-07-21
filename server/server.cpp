@@ -130,7 +130,8 @@ namespace tcp_messenger {
       UE new_ue;
       new_ue.name = "";
       new_ue.ip = socket->peerAddress().toString();
-      new_ue.port = socket->peerPort();
+      //will change when ue_name() is sent
+      new_ue.rx_port = 0;
       m_online_users.append(new_ue);
       debugInfo("New empty UE registered!");
     } else {
@@ -158,7 +159,10 @@ namespace tcp_messenger {
     
       //step to register UE name to server after first connection
       if (message.contains("ue_name")) {
-	QString temp_name = message.mid(8, message.lastIndexOf(")") - message.lastIndexOf("(") - 1);
+	QString temp_name = message.mid(8, message.indexOf(")") - message.indexOf("(") - 1);
+	quint16 temp_port = (quint16) message.mid(message.lastIndexOf("(") + 1,
+					message.lastIndexOf(")") - message.lastIndexOf("(") - 1).toInt();
+	DLOG (INFO) << "Parsed port: " << temp_port;
 	if (temp_name.isEmpty()) {
 	  return;
 	}
@@ -169,13 +173,15 @@ namespace tcp_messenger {
 	  debugInfo("New user " + temp_name + " connected from same IP. Registering user.");
 	  temp.name = temp_name;
 	  temp.ip = socket->peerAddress().toString();
-	  temp.port = socket->peerPort();
+	  //parse ue_rx_port
+	  temp.rx_port = temp_port;
 	  index = getIndexOfUEIp(socket->peerAddress().toString());
 	  if (m_online_users.at(index).name.isEmpty()) {
 	    //first time, when username is still empty
 	    if (index != -1) {
 	      temp = m_online_users.at(index);
 	      temp.name = temp_name;
+	      temp.rx_port = temp_port;
 	      m_online_users.replace(index,temp);
 	    }
 	  } else {
@@ -206,11 +212,11 @@ namespace tcp_messenger {
 	if (logLabel->toPlainText() != "") {
 	  logLabel->setText(logLabel->toPlainText() + "\n[" + temp.name + "]@" +
 			    temp.ip + ":" +
-			    QString::number(temp.port) + " is now online.");
+			    QString::number(temp.rx_port) + " is now online.");
 	} else {
 	  logLabel->setText(logLabel->toPlainText() + "[" + temp.name + "]@" +
 			    temp.ip + ":" +
-			    QString::number(temp.port) + " is now online.");
+			    QString::number(temp.rx_port) + " is now online.");
 	}
 	//parse online users
 	QString users;
@@ -235,7 +241,32 @@ namespace tcp_messenger {
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	DLOG (INFO) <<"Sending information about currently online users...\n";
-	socket->write(block);
+	/*At this point, this block will be sent to all current users, not only to the
+	 user that is currently connected*/
+	//socket->write(block);
+	for (auto connection: m_online_users) {
+	  QTcpSocket *temp_socket = new QTcpSocket(this);
+	  temp_socket->connectToHost(QHostAddress(connection.ip), connection.rx_port);
+	  if (!temp_socket->waitForConnected(3000)) {
+	    LOG (ERROR) << "ERROR: Connection attempt @"
+			<< connection.ip.toStdString() << ":"
+			<< connection.rx_port << " timed out. Omitting current...";
+	  } else {
+	    debugInfo("Connection to client @" + connection.ip + ":"
+		      + QString::number(connection.rx_port) + " was established. Now sending...");
+	    temp_socket->write(block);
+	    if (!temp_socket->waitForBytesWritten()) {
+	      LOG (ERROR) << "ERROR: Connection attempt @"
+			<< connection.ip.toStdString() << ":"
+			<< connection.rx_port << " timed out. Omitting current...";
+	    } else {
+	      debugInfo("Transmission to client @" + connection.ip + ":"
+			+ QString::number(connection.rx_port) + " was successful!");
+	    }
+	  }
+	  temp_socket->disconnectFromHost();
+	  temp_socket->waitForDisconnected();
+	}
       } else if (message.contains("ue_disconnect")) {
 	unregisterUser();
       } else if (message.contains("ue_message")) { //regular message
@@ -255,11 +286,22 @@ namespace tcp_messenger {
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	if (dest.contains("[Me]")) {
-	  debugInfo("Sending...");
+	  debugInfo("WARNING: Message intended for self UE. Sending back to user...");
 	  socket->write(block);
 	} else {
 	  QTcpSocket *dest_socket = new QTcpSocket(this);
-	  dest_socket->connectToHost(QHostAddress("192.168.2.2"), 30500);
+	  QString dest_ip;
+	  quint16 dest_port;
+	  int index = getIndexOfUEName(dest);
+	  if (index != -1) {
+	    dest_ip = m_online_users.at(index).ip;
+	    dest_port = m_online_users.at(index).rx_port;
+	    debugInfo("Going to forward message to " + dest_ip + ":" + QString::number(dest_port));
+	  } else {
+	    LOG (ERROR) << "ERROR: name was not found on server. Returning...";
+	    return;
+	  }
+	  dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
 	  if (!dest_socket->waitForConnected(2000)) {
 	    debugInfo("ERROR: request timed out");
 	  } else {
@@ -286,7 +328,7 @@ namespace tcp_messenger {
     if (m_online_users.at(0).name != "") {
       logLabel->setText(logLabel->toPlainText() + "\n[" + m_online_users.at(0).name + "]@" +
 			m_online_users.at(0).ip + ":" +
-			QString::number(m_online_users.at(0).port) + " is now offline.");
+			QString::number(m_online_users.at(0).rx_port) + " is now offline.");
       QString current = onlineUsers->toPlainText();
       DLOG (INFO) << "Removing: " << current.remove(m_online_users.at(0).name, Qt::CaseInsensitive).toStdString() ;
       onlineUsers->setText(current);
@@ -364,7 +406,7 @@ namespace tcp_messenger {
   std::ostream &operator<<(std::ostream &os, const UE& user) {
     os << "Name: " << user.name.toStdString()
        << ", IP: " << user.ip.toStdString()
-       << ", Port: " << user.port ;
+       << ", RX port: " << user.rx_port ;
     return os;
   }
 
