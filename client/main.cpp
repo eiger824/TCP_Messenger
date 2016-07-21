@@ -1,5 +1,5 @@
 #include <QApplication>
-#include "client.h"
+#include "client.hpp"
 #include <iostream>
 #include <string>
 #include <stdexcept>

@@ -28,11 +28,14 @@ namespace tcp_messenger {
     //sets message
     void newMessage(const QString& text);
     void setMessageStatus(int status);
+    void setSender(bool self);
   signals:
     void statusChanged(STATUS status);
   private slots:
     void timerTimedOut();
     void statusChangedSlot(STATUS status);
+  public:
+    void operator=(Message const& next_message);
   private:
     QHBoxLayout *m_main_layout;
     QLabel *m_text_label;

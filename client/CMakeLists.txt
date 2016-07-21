@@ -11,13 +11,15 @@ include_directories(system
   )
 
 set(HEADERS_MOC
-  client.h
+  client.hpp
+  chat.hpp
   message.hpp
   )
 qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 
 set(SOURCES
   client.cpp
+  chat.cpp
   message.cpp
   )
 

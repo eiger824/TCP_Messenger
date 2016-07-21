@@ -5,7 +5,7 @@
 #include <iostream>
 #include <glog/logging.h>
 
-#include "client.h"
+#include "client.hpp"
 #include "message.hpp"
 
 namespace tcp_messenger {
@@ -26,7 +26,8 @@ namespace tcp_messenger {
     if (image.load("images/offline.png")) {
       m_status->setPixmap(image);
     } else m_status->setText("Error loading icon");
-  
+
+    //***************************************************************
     m_chat = new QTextEdit;
     m_chat->setFixedSize(this->width() - 80, this->height() - 100);
     DLOG (INFO) << this->width() - 80;
@@ -43,7 +44,10 @@ namespace tcp_messenger {
     chat->setStyleSheet("#Chat {border: 2px solid black; background-color: white;}");
     m_message_layout->setAlignment(Qt::AlignTop);
     m_message_layout->setSpacing(0);
-    
+    //******************************************************************
+    m_window = new Chat();
+    m_window->setParent(this);
+      
     blockSize=0;
     m_online = false;
     m_debug = false;
@@ -135,7 +139,7 @@ namespace tcp_messenger {
     mainLayout->addWidget(new QLabel("Select user from list:"), 5, 0);
     mainLayout->addWidget(m_box, 6, 0);
     mainLayout->addWidget(checkbox, 6, 1);
-    mainLayout->addWidget(chat, 7, 0, 1, 2, Qt::AlignCenter);
+    mainLayout->addWidget(m_window, 7, 0, 1, 2, Qt::AlignCenter);
     mainLayout->addWidget(messageLabel, 8, 0);
     mainLayout->addWidget(messageLineEdit, 8, 1);
     mainLayout->addWidget(send, 8, 2);

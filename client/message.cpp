@@ -138,6 +138,10 @@ namespace tcp_messenger {
     }
   }
 
+  void Message::setSender(bool self) {
+    fromMe(self);
+  }
+
   void Message::setMessageStatus(int status) {
     if (status == 0) {
       m_status = SENDING;
@@ -149,5 +153,11 @@ namespace tcp_messenger {
       m_status = LOST;
       emit statusChanged(LOST);
     }
+  }
+
+  void Message::operator=(Message const& next_message) {
+    newMessage(next_message.m_text_label->text());
+    setMessageStatus(next_message.m_status);
+    fromMe(next_message.m_self);
   }
 }
