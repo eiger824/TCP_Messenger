@@ -10,7 +10,7 @@
 namespace tcp_messenger {
 
   Server::Server(QWidget *parent)
-    :   QDialog(parent), tcpServer(0), networkSession(0)
+    :   QDialog(parent), networkSession(0)
   {
     statusLabel = new QLabel;
     quitButton = new QPushButton(tr("Quit"));
@@ -254,8 +254,26 @@ namespace tcp_messenger {
 	out << QString("ue_message(" + content + ");ue_dest(" + dest + ");");
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
-	debugInfo("Sending...");
-	socket->write(block);
+	if (dest.contains("[Me]")) {
+	  debugInfo("Sending...");
+	  socket->write(block);
+	} else {
+	  QTcpSocket *dest_socket = new QTcpSocket(this);
+	  dest_socket->connectToHost(QHostAddress("192.168.2.2"), 30500);
+	  if (!dest_socket->waitForConnected(2000)) {
+	    debugInfo("ERROR: request timed out");
+	  } else {
+	    debugInfo("Established connection with client. Sending...");
+	    dest_socket->write(block);
+	    if (!dest_socket->waitForBytesWritten(5000)) {
+	      debugInfo("ERROR: transmission timed out");
+	    } else {
+	      debugInfo("Success! Message was forwarded to destination");
+	    }
+	    dest_socket->disconnectFromHost();
+	  }
+	}
+	  
 	DLOG (INFO) << "Sent!";
       }
     }

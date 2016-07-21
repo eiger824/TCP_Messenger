@@ -13,6 +13,7 @@ class QLineEdit;
 class QTextEdit;
 class QPushButton;
 class QTcpSocket;
+class QTcpServer;
 class QNetworkSession;
 class QCheckBox;
 class QPixmap;
@@ -45,6 +46,7 @@ namespace tcp_messenger {
       void changeDebugMode(bool toggled);
       void currentIndexChangedSlot(int index);
       void sendMessage();
+      void newServerConnection();
 
   private:
       void keyPressEvent(QKeyEvent *event);
@@ -70,6 +72,7 @@ namespace tcp_messenger {
       QCheckBox *checkbox;
       QTcpSocket *m_connection_socket;
       QTcpSocket *m_transmission_socket;
+      QTcpServer *m_listen_socket;
       QString currentFortune;
       quint16 blockSize;
       bool m_online;

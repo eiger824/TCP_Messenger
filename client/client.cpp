@@ -9,6 +9,8 @@
 
 namespace tcp_messenger {
 
+  static const quint16 LISTEN_PORT = 30500;
+  
   Client::Client(QWidget *parent)
     :   QDialog(parent), networkSession(0)
   {
@@ -80,6 +82,8 @@ namespace tcp_messenger {
     //m_connection_socket->setLocalPort(30500);
     m_transmission_socket = new QTcpSocket(this);
     //m_transmission_socket->setLocalPort(30502);
+    m_listen_socket = new QTcpServer(this);
+    connect(m_listen_socket, SIGNAL(newConnection()), this, SLOT(newServerConnection()));
   
     connect(hostLineEdit, SIGNAL(textChanged(QString)),
 	    this, SLOT(enableGetFortuneButton()));
@@ -355,6 +359,24 @@ namespace tcp_messenger {
     m_online = true;
     debugInfo("Success!");
     debugInfo("Changing icon status...");
+
+    //start listening server
+    quint16 listening_port = LISTEN_PORT;
+    debugInfo("Attempting connection on port: " + QString::number(listening_port));
+    while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), listening_port) &&
+	   listening_port <= 65535) {
+      listening_port += 2;
+      debugInfo("Error: Trying next port: " + QString::number(listening_port));
+    }
+    if (listening_port < 65536) {
+      debugInfo("Success: client will listen to server @ " +
+		hostLineEdit->text() + ":" + QString::number(listening_port));
+      
+    } else {
+      LOG (ERROR) << "No available ports were found. Closing client...";
+      close();
+      return;
+    }
   }
 
   void Client::nowOffline() {
@@ -481,4 +503,37 @@ namespace tcp_messenger {
     }
   }
 
+  void Client::newServerConnection() {
+    QTcpSocket *socket = m_listen_socket->nextPendingConnection();
+    debugInfo("Incoming connection from server: " + socket->peerAddress().toString() + ":"
+	      + QString::number(socket->peerPort()));
+    if (!socket->waitForReadyRead(5000)) {
+      debugInfo("ERROR: transmission timed out");
+    } else {
+      //parse data
+      QDataStream in(socket);
+      in.setVersion(QDataStream::Qt_4_0);
+      debugInfo("blocksize: " + QString::number(blockSize));
+      debugInfo("bytes available in client socket: " + QString::number(socket->bytesAvailable()));
+      if (blockSize == 0) {
+	if (socket->bytesAvailable() < (int)sizeof(quint16))
+	  return;
+      
+	in >> blockSize;
+      }
+        
+      if (socket->bytesAvailable() < blockSize)
+	return;
+    
+      QString message;
+      in >> message;
+    
+      debugInfo("Message: [" + message + "]");
+      QString dest;
+      QString content = filterMessage(dest, message);
+      m_chat->setText(m_chat->toPlainText() + "\n" + content);
+    }
+    blockSize=0;
+  }
+  
 }
