@@ -531,7 +531,10 @@ namespace tcp_messenger {
       debugInfo("Message: [" + message + "]");
       QString dest;
       QString content = filterMessage(dest, message);
-      m_chat->setText(m_chat->toPlainText() + "\n" + content);
+      if (m_chat->toPlainText() != "")
+	m_chat->setText(m_chat->toPlainText() + "\n" + content);
+      else
+	m_chat->setText(content);
     }
     blockSize=0;
   }
