@@ -6,14 +6,16 @@
 #include <glog/logging.h>
 
 #include "client.h"
+#include "message.hpp"
 
 namespace tcp_messenger {
 
   static const quint16 LISTEN_PORT = 30500;
   
   Client::Client(QWidget *parent)
-    :   QDialog(parent), networkSession(0)
-  {
+    :   QDialog(parent),
+	networkSession(0) {
+    
     hostLabel = new QLabel(tr("&Server name:"));
     portLabel = new QLabel(tr("S&erver port:"));
     messageLabel = new QLabel(tr("Mess&age to send:\n(CTRL + Enter to send)"));
@@ -27,11 +29,21 @@ namespace tcp_messenger {
   
     m_chat = new QTextEdit;
     m_chat->setFixedSize(this->width() - 80, this->height() - 100);
+    DLOG (INFO) << this->width() - 80;
     m_chat->setEnabled(true);
     m_chat->setReadOnly(true);
     m_chat->setStyleSheet("border: 2px solid black; background-color: white; color: black;");
     m_chat->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-  
+
+    m_message_layout = new QVBoxLayout;
+    QWidget *chat = new QWidget(this);
+    chat->setLayout(m_message_layout);
+    chat->setFixedSize(this->width() - 80, this->height() - 100);
+    chat->setObjectName("Chat");
+    chat->setStyleSheet("#Chat {border: 2px solid black; background-color: white;}");
+    m_message_layout->setAlignment(Qt::AlignTop);
+    m_message_layout->setSpacing(0);
+    
     blockSize=0;
     m_online = false;
     m_debug = false;
@@ -123,14 +135,14 @@ namespace tcp_messenger {
     mainLayout->addWidget(new QLabel("Select user from list:"), 5, 0);
     mainLayout->addWidget(m_box, 6, 0);
     mainLayout->addWidget(checkbox, 6, 1);
-    mainLayout->addWidget(m_chat, 7, 0, 1, 2, Qt::AlignCenter);
+    mainLayout->addWidget(chat, 7, 0, 1, 2, Qt::AlignCenter);
     mainLayout->addWidget(messageLabel, 8, 0);
     mainLayout->addWidget(messageLineEdit, 8, 1);
     mainLayout->addWidget(send, 8, 2);
     mainLayout->addWidget(statusLabel, 9, 0, 1, 2);
     setLayout(mainLayout);
 
-    setWindowTitle(tr("Fortune Client"));
+    setWindowTitle(tr("TCP Messenger by Santiago Pagola"));
     portLineEdit->setFocus();
 
     QNetworkConfigurationManager manager;
@@ -226,7 +238,9 @@ namespace tcp_messenger {
       QString dest,from;
       QString content = filterMessage(dest,from,message);
       DLOG (INFO) << "Message received: " << content.toStdString();
-      m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
+      //m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
+      m_message_layout->addWidget(new Message(dest + ":" + content, false));
+      qobject_cast<Message*>(m_message_layout->itemAt(m_message_layout->count() - 2)->widget())->setMessageStatus(1);
       //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());
       int nr = m_convers.remove(user);
@@ -309,10 +323,12 @@ namespace tcp_messenger {
     if (!messageLineEdit->toPlainText().isEmpty() &&
 	messageLineEdit->isEnabled()) {
       QString message = messageLineEdit->toPlainText();
-      if (m_chat->toPlainText() != "") 
+      /*if (m_chat->toPlainText() != "") 
 	m_chat->setText(m_chat->toPlainText() + "\nMe: " + message);
       else
-	m_chat->setText("Me: " + message);
+      m_chat->setText("Me: " + message);*/
+
+      m_message_layout->addWidget(new Message("Me:" + message, true));
     
       //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());

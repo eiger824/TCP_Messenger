@@ -12,11 +12,13 @@ include_directories(system
 
 set(HEADERS_MOC
   client.h
+  message.hpp
   )
 qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 
 set(SOURCES
   client.cpp
+  message.cpp
   )
 
 add_executable(client
@@ -36,5 +38,8 @@ install(TARGETS client DESTINATION ${PROJECT_BINARY_DIR}/cmake_targets)
 install(FILES
   ${PROJECT_SOURCE_DIR}/images/online.png
   ${PROJECT_SOURCE_DIR}/images/offline.png
+  ${PROJECT_SOURCE_DIR}/images/clock.png
+  ${PROJECT_SOURCE_DIR}/images/warning.png
+  ${PROJECT_SOURCE_DIR}/images/check.png
   DESTINATION ${CMAKE_INSTALL_PREFIX}/../images)
 
