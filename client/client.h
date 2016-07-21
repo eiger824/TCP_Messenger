@@ -17,15 +17,15 @@ class QNetworkSession;
 class QCheckBox;
 class QPixmap;
 class QComboBox;
+class QAbstractSocket;
+class QVBoxLayout;
 
 namespace tcp_messenger {
 
   static const int ENTER = 16777220;
 
-  class Client : public QDialog
-  {
+  class Client : public QDialog {
     Q_OBJECT
-
   public:
     Client(QWidget *parent = 0);
     void setData(bool debug_mode,
@@ -76,6 +76,7 @@ namespace tcp_messenger {
       bool m_debug;
       QNetworkSession *networkSession;
       QComboBox *m_box;
+      QVBoxLayout *m_message_layout;
       QMap<QString,QString>m_convers;
   };
 }
