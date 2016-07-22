@@ -15,7 +15,10 @@ namespace tcp_messenger {
     statusLabel = new QLabel;
     quitButton = new QPushButton(tr("Quit"));
     quitButton->setAutoDefault(false);
-  
+
+    //protocol
+    m_protocol = new Protocol(PROTOCOL_VERSION);
+    
     blockSize = 0;
   
     logLabel = new QTextEdit;
@@ -264,7 +267,10 @@ namespace tcp_messenger {
 	    }
 	  }
 	  temp_socket->disconnectFromHost();
-	  temp_socket->waitForDisconnected();
+	  if (temp_socket->state() == QAbstractSocket::UnconnectedState ||
+	      temp_socket->waitForDisconnected(1000)) {
+	    debugInfo("Socket disconnected.");
+	  }
 	}
       } else if (message.contains("ue_disconnect")) {
 	unregisterUser();
@@ -273,9 +279,15 @@ namespace tcp_messenger {
 	//and send it back to the user
 	debugInfo("Going to resend message to dest client: [" + message + "]");
 	// ************************ THIS IS WRONG NOW, USE PARSING APPROACH ON PROTOCOL
-	QString dest,from;
-	QString content = filterMessage(dest,from,message);
-	
+	//QString dest,from;
+	//QString content = filterMessage(dest,from,message);
+	ProtocolStreamType_UE type;
+	QStringList params = m_protocol->parseStream_UE(type, message);
+	QString content = params.at(0);
+	QString dest = params.at(1);
+	QString from = params.at(2);
+	DLOG (INFO) << "Message: " << content.toStdString() << ", from " << from.toStdString()
+		    << " and to " << dest.toStdString();
 	// ****************************************************************************
 	QByteArray block;
 	QDataStream out(&block, QIODevice::WriteOnly);

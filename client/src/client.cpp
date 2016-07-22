@@ -195,8 +195,13 @@ namespace tcp_messenger {
   
     debugInfo("Stream received: " + message);
 
-    ProtocolStreamType_Server type;
-    QStringList params = m_stream_generator->parseStream_Server(type,message);
+    ProtocolStreamType_UE type;
+    QStringList params = m_stream_generator->parseStream_UE(type,message);
+    /********/
+    for (auto param: params) {
+      DLOG (INFO) << "Param: [" << param.toStdString() << "]";
+    }
+    /********/
     switch (type) {
     case SERVER_ALL:
       {
@@ -244,7 +249,7 @@ namespace tcp_messenger {
     default:
       {
       debugInfo("Self message detected");
-      m_window->newMessageFromUser(params.at(0), false, params.at(2));
+      DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
       break;
       }
     }
@@ -554,7 +559,67 @@ namespace tcp_messenger {
     
       debugInfo("Message: [" + message + "]");
 
-      if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
+      ProtocolStreamType_UE type;
+      QStringList params = m_stream_generator->parseStream_UE(type,message);
+      /********/
+      for (auto param: params) {
+	DLOG (INFO) << "Param: [" << param.toStdString() << "]";
+      }
+      /********/
+      switch (type) {
+      case SERVER_ALL:
+	{
+	  QStringList userlist = params.at(0).split("-");
+	  userlist.insert(0, "Select from list...");
+	  m_box->addItems(userlist);
+	  debugInfo("Online users:" + userlist.join("-"));
+	  //create qmaps with empty conversations
+	  for (unsigned i = 1; i < userlist.size(); ++i) {
+	    //and create conversation windows if not exisiting
+	    if (m_window->addUser(userlist.at(i))) {
+	      debugInfo("User " + userlist.at(i) + " added to conversation stack");
+	    } else {
+	      debugInfo("User " + userlist.at(i) + " was already registered.");
+	    }
+	  }
+	  //and change icon
+	  QPixmap image;
+	  if (image.load(QString::fromStdString("images/online.png"))) {
+	    m_status->setPixmap(image);
+	    debugInfo("Icon changed!");
+	  }
+	  //and disable server fields
+	  enableServerFields(false);
+	  break;
+	}
+      case SERVER_ACK:
+	{
+	  m_window->setMessageStatus((unsigned int) params.at(1).toInt(), 1);
+	  debugInfo("Message was seen");
+	  break;
+	}
+      case SERVER_ERROR:
+	{
+	  QMessageBox::information(this, tr("Error"),
+				   tr("The connection was refused by the peer. "
+				      "A username matching yours was already found "
+				      "on the server on the same IP. "
+				      "Choose a different username."));
+	  enableGetFortuneButton();
+	  m_online = false;
+	  blockSize = 0;
+	  break;
+	}
+      default:
+	{
+	  debugInfo("Self message detected");
+	  DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
+	  break;
+	}
+      }
+  
+
+      /*if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
 	QString users = message.mid(message.indexOf("(") + 1,
 				    message.indexOf(")") - message.indexOf("(") - 1);
 	QStringList userlist = users.split('-');
@@ -590,7 +655,7 @@ namespace tcp_messenger {
 	//and update text buffers
 	m_window->newMessageFromUser(from + ":" + content,false,from);
 	
-      }
+      }*/
     }
     blockSize=0;
   }
