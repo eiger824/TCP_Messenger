@@ -7,7 +7,7 @@ namespace tcp_messenger {
     setFixedSize(530, 38);
 
     setObjectName("Message");
-    setStyleSheet("#Message {border: 2px solid black;}");
+    setObjectName("#Message {background-color: white;}");
     
     m_main_layout = new QHBoxLayout;
     
@@ -44,7 +44,7 @@ namespace tcp_messenger {
     m_main_layout = new QHBoxLayout;
 
     setObjectName("Message");
-    this->setStyleSheet("#Message {border: 2px solid black;}");
+    setObjectName("#Message {background-color: white;}");
     
     m_text_label = new QLabel(text);
     m_text_label->setContentsMargins(5,5,30,15);
@@ -124,8 +124,12 @@ namespace tcp_messenger {
       if (image.load("images/clock.png"))
 	m_status_label->setPixmap(image);
       break;
-    case RECEIVED:
+    case SENT:
       if (image.load("images/check.png"))
+	m_status_label->setPixmap(image);
+      break;
+    case RECEIVED:
+      if (image.load("images/seen.png"))
 	m_status_label->setPixmap(image);
       break;
     case LOST:
@@ -146,10 +150,13 @@ namespace tcp_messenger {
     if (status == 0) {
       m_status = SENDING;
       emit statusChanged(SENDING);
-    } else if (status ==1) {
+    } else if (status == 1) {
+      m_status = SENT;
+      emit statusChanged(SENT);
+    } else if (m_status == 2) {
       m_status = RECEIVED;
       emit statusChanged(RECEIVED);
-    } else {
+    } else if (m_status == 3) {
       m_status = LOST;
       emit statusChanged(LOST);
     }

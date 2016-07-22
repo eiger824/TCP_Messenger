@@ -11,6 +11,7 @@ namespace tcp_messenger {
 
   enum STATUS {
     SENDING,
+    SENT,
     RECEIVED,
     LOST
   };

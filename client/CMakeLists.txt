@@ -12,6 +12,7 @@ include_directories(system
 
 set(HEADERS_MOC
   client.hpp
+  chatwrapper.hpp
   chat.hpp
   message.hpp
   )
@@ -19,6 +20,7 @@ qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 
 set(SOURCES
   client.cpp
+  chatwrapper.cpp
   chat.cpp
   message.cpp
   )
@@ -43,5 +45,6 @@ install(FILES
   ${PROJECT_SOURCE_DIR}/images/clock.png
   ${PROJECT_SOURCE_DIR}/images/warning.png
   ${PROJECT_SOURCE_DIR}/images/check.png
+  ${PROJECT_SOURCE_DIR}/images/seen.png
   DESTINATION ${CMAKE_INSTALL_PREFIX}/../images)
 

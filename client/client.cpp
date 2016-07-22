@@ -27,30 +27,19 @@ namespace tcp_messenger {
       m_status->setPixmap(image);
     } else m_status->setText("Error loading icon");
 
-    //***************************************************************
-    m_chat = new QTextEdit;
-    m_chat->setFixedSize(this->width() - 80, this->height() - 100);
-    DLOG (INFO) << this->width() - 80;
-    m_chat->setEnabled(true);
-    m_chat->setReadOnly(true);
-    m_chat->setStyleSheet("border: 2px solid black; background-color: white; color: black;");
-    m_chat->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-
-    m_message_layout = new QVBoxLayout;
-    QWidget *chat = new QWidget(this);
-    chat->setLayout(m_message_layout);
-    chat->setFixedSize(this->width() - 80, this->height() - 100);
-    chat->setObjectName("Chat");
-    chat->setStyleSheet("#Chat {border: 2px solid black; background-color: white;}");
-    m_message_layout->setAlignment(Qt::AlignTop);
-    m_message_layout->setSpacing(0);
-    //******************************************************************
-    m_window = new Chat();
-    m_window->setParent(this);
-      
+    //chat window
+    m_window = new ChatWrapper();
+    m_window->setFixedSize(560,380);
+    //m_window->setObjectName("ChatWindowWrapper");
+    //m_window->setStyleSheet("#ChatWindowWrapper {background-color: white; border : 2px solid black;}");
+    
+    connect(this, SIGNAL(currentWindowChanged(const QString&)), m_window,
+	    SLOT(currentWindowChangedSlot(const QString&)));
+    
     blockSize=0;
     m_online = false;
     m_debug = false;
+    
     // find out which IP to connect to
     QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
@@ -219,6 +208,12 @@ namespace tcp_messenger {
       //create qmaps with empty conversations
       for (auto user: userlist) {
 	m_convers[user] = "";
+	//and create conversation windows if not exisiting
+	if (m_window->addUser(user)) {
+	  debugInfo("User " + user + " added to conversation stack");
+	} else {
+	  debugInfo("User " + user + " was already registered.");
+	}
       }
       debugInfo("Created qmap object with empty conversations");
       //and change icon
@@ -243,12 +238,11 @@ namespace tcp_messenger {
       QString content = filterMessage(dest,from,message);
       DLOG (INFO) << "Message received: " << content.toStdString();
       //m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
-      m_message_layout->addWidget(new Message(dest + ":" + content, false));
-      qobject_cast<Message*>(m_message_layout->itemAt(m_message_layout->count() - 2)->widget())->setMessageStatus(1);
+      
       //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());
       int nr = m_convers.remove(user);
-      m_convers[user] = m_chat->toPlainText();
+      //m_convers[user] = ; /*m_chat->toPlainText();*/
       debugInfo("Updated qmap object");
       getFortuneButton->setEnabled(true);
     }
@@ -332,12 +326,12 @@ namespace tcp_messenger {
       else
       m_chat->setText("Me: " + message);*/
 
-      m_message_layout->addWidget(new Message("Me:" + message, true));
-    
+      m_window->newMessageFromUser(message,true,m_box->currentText());
+      
       //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());
       int nr = m_convers.remove(user);
-      m_convers[user] = m_chat->toPlainText();
+      //m_convers[user] = ;/*m_chat->toPlainText();*/
       debugInfo("Updated qmap object");
       messageLineEdit->clear();
 
@@ -517,7 +511,8 @@ namespace tcp_messenger {
 
   void Client::currentIndexChangedSlot(int index) {
     QString current_conver = m_box->itemText(index);
-    m_chat->setText(m_convers[current_conver]);
+    //m_chat->setText(m_convers[current_conver]);
+    emit currentWindowChanged(current_conver);
     debugInfo("New index: " + QString::number(index) + " (chatting with " + current_conver + ")");
     debugInfo("Switched conversation");
     if (index == 0) {
@@ -570,6 +565,12 @@ namespace tcp_messenger {
 	//create qmaps with empty conversations
 	for (auto user: userlist) {
 	  m_convers[user] = "";
+	  //and create conversation windows if not exisiting
+	  if (m_window->addUser(user)) {
+	    debugInfo("User " + user + " added to conversation stack");
+	  } else {
+	    debugInfo("User " + user + " was already registered.");
+	  }
 	}
 	debugInfo("Created qmap object with empty conversations");
 	//and change icon
@@ -589,14 +590,16 @@ namespace tcp_messenger {
 	if (index != -1)
 	  m_box->setCurrentIndex(index);
 	//and update text buffers
+
+	m_window->newMessageFromUser(content,false,from);
 	
-	if (m_chat->toPlainText() != "")
+	/*if (m_chat->toPlainText() != "")
 	  m_chat->setText(m_chat->toPlainText() + "\n" + from + ":" + content);
 	else
-	  m_chat->setText(from + ":" + content);
+	m_chat->setText(from + ":" + content);*/
 
 	int nr = m_convers.remove(m_box->currentText());
-	m_convers[m_box->currentText()] = m_chat->toPlainText();
+	//m_convers[m_box->currentText()] = ;/*m_chat->toPlainText();*/
       }
     }
     blockSize=0;

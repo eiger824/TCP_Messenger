@@ -7,7 +7,7 @@
 #include <QMap>
 #include <string>
 
-#include "chat.hpp"
+#include "chatwrapper.hpp"
 
 class QDialogButtonBox;
 class QLabel;
@@ -49,7 +49,8 @@ namespace tcp_messenger {
     void currentIndexChangedSlot(int index);
     void sendMessage();
     void newServerConnection();
-
+  signals:
+    void currentWindowChanged(const QString& user);
   private:
     void keyPressEvent(QKeyEvent *event);
     QString filterMessage(QString& dest, QString& from, QString data);
@@ -81,9 +82,8 @@ namespace tcp_messenger {
     bool m_debug;
     QNetworkSession *networkSession;
     QComboBox *m_box;
-    QVBoxLayout *m_message_layout;
     QMap<QString,QString>m_convers;
-    Chat *m_window;
+    ChatWrapper *m_window;
   };
 }
 #endif

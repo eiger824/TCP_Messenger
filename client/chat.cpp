@@ -7,21 +7,19 @@ namespace tcp_messenger {
 
   static const int MAX_MESSAGES = 9;
   
-  Chat::Chat(QWidget *parent) {
-
-    setFixedSize(this->width() - 80, this->height() - 100);
-    setObjectName("Chat");
-    setStyleSheet("#Chat {border: 2px solid black; background-color: white;}");
-    
+  Chat::Chat(const QString& name, QWidget *parent) : m_name(name){
+    setObjectName("ChatWindow");
+    setStyleSheet("#ChatWindow {background-color: white;}");
     m_main_layout = new QVBoxLayout;
     m_main_layout->setSpacing(0);
     m_main_layout->setAlignment(Qt::AlignTop);
     setLayout(m_main_layout);
+    show();
   }
 
   Chat::~Chat() {}
 
-  void Chat::addMessage(const QString& text, bool self) {
+  void Chat::addMessage(const QString& text, bool self, const QString& from) {    
     if (m_main_layout->count() < MAX_MESSAGES - 1) {
       m_main_layout->addWidget(new Message(text,self));
     } else {
