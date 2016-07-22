@@ -66,7 +66,8 @@ namespace tcp_messenger {
   enum ProtocolStreamType_Server {
     SERVER_ALL,
     SERVER_ACK,
-    SERVER_ERROR
+    SERVER_ERROR,
+    SERVER_FWD_TO_SENDER
   };
   
   struct UE_Register {

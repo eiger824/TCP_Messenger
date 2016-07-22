@@ -138,10 +138,16 @@ namespace tcp_messenger {
     case SENT:
       if (image.load("images/check.png"))
 	m_status_label->setPixmap(image);
+      if (m_ack_timer->isActive()) {
+	m_ack_timer->stop();
+      }
       break;
     case RECEIVED:
       if (image.load("images/seen.png"))
 	m_status_label->setPixmap(image);
+      if (m_ack_timer->isActive()) {
+	m_ack_timer->stop();
+      }
       break;
     case LOST:
       if (image.load("images/warning.png"))
@@ -158,16 +164,17 @@ namespace tcp_messenger {
   }
 
   void Message::setMessageStatus(int status) {
+    DLOG (INFO) << "Setting status: " << status;
     if (status == 0) {
       m_status = SENDING;
       emit statusChanged(SENDING);
     } else if (status == 1) {
       m_status = SENT;
       emit statusChanged(SENT);
-    } else if (m_status == 2) {
+    } else if (status == 2) {
       m_status = RECEIVED;
       emit statusChanged(RECEIVED);
-    } else if (m_status == 3) {
+    } else if (status == 3) {
       m_status = LOST;
       emit statusChanged(LOST);
     }

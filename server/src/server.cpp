@@ -235,12 +235,12 @@ namespace tcp_messenger {
 	QDataStream out(&block, QIODevice::WriteOnly);
 	out.setVersion(QDataStream::Qt_4_0);
 	out << (quint16)0;
-	QString names;
-	for (auto item: m_online_users) {
-	  names+=item.name + "-";
+	QStringList params;
+	for (auto user: m_online_users) {
+	  params << user.name;
 	}
-	names.chop(1);
-	out << QString("ue_all(" + names + ");");
+	out << m_protocol->constructStream_Server(params,
+						  ProtocolStreamType_Server::SERVER_ALL);
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	DLOG (INFO) <<"Sending information about currently online users...\n";
@@ -278,27 +278,31 @@ namespace tcp_messenger {
 	logLabel->setText(logLabel->toPlainText() + "\n" + message);
 	//and send it back to the user
 	debugInfo("Going to resend message to dest client: [" + message + "]");
-	// ************************ THIS IS WRONG NOW, USE PARSING APPROACH ON PROTOCOL
-	//QString dest,from;
-	//QString content = filterMessage(dest,from,message);
 	ProtocolStreamType_UE type;
 	QStringList params = m_protocol->parseStream_UE(type, message);
 	QString content = params.at(0);
 	QString dest = params.at(1);
 	QString from = params.at(2);
+	unsigned int message_id = (unsigned int) params.at(3).toInt();
 	DLOG (INFO) << "Message: " << content.toStdString() << ", from " << from.toStdString()
-		    << " and to " << dest.toStdString();
-	// ****************************************************************************
+		    << " and to " << dest.toStdString()
+		    << ", with message ID: " << message_id;
 	QByteArray block;
 	QDataStream out(&block, QIODevice::WriteOnly);
 	out.setVersion(QDataStream::Qt_4_0);
 	out << (quint16)0;
-	out << message;
+	out << m_protocol->constructStream_Server(QStringList(message),
+						  ProtocolStreamType_Server::SERVER_FWD_TO_SENDER);
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
 	if (dest == from) {
 	  debugInfo("WARNING: Message intended for self UE. Sending back to user...");
 	  socket->write(block);
+	  if (!socket->waitForBytesWritten(2000)) {
+	    LOG (ERROR) << "ERROR: transmission timeout";
+	  } else {
+	    debugInfo("Success!");
+	  }
 	} else {
 	  QTcpSocket *dest_socket = new QTcpSocket(this);
 	  QString dest_ip;
@@ -329,7 +333,10 @@ namespace tcp_messenger {
 	    QDataStream ack(&ack_data, QIODevice::WriteOnly);
 	    ack.setVersion(QDataStream::Qt_4_0);
 	    ack << (quint16)0;
-	    ack << QString("server_ack();");
+	    QStringList params;
+	    params << from << QString::number(message_id);
+	    ack << m_protocol->constructStream_Server(params,
+						      ProtocolStreamType_Server::SERVER_ACK);
 	    ack.device()->seek(0);
 	    debugInfo("Sending ack to user: "  + from);
 	    socket->write(ack_data);

@@ -53,6 +53,10 @@ namespace tcp_messenger {
   QString Protocol::constructStream_Server(QStringList params,
 						  tcp_messenger::ProtocolStreamType_Server stream_type) {
     switch (stream_type) {
+    case SERVER_ALL:
+      {
+	return (SERVER_ALL_HEADER + OPEN + params.join("-") + CLOSE + SEMICOLON);
+      }
     case SERVER_ACK:
       {
 	Server_OutgoingAck out;
@@ -62,8 +66,13 @@ namespace tcp_messenger {
       }
     case SERVER_ERROR:
       return (SERVER_ERROR_HEADER + OPEN + CLOSE + SEMICOLON);
+    case SERVER_FWD_TO_SENDER:
+      {
+	DLOG (INFO) << "Forwarding stream to user, no need to create new";
+	return params.at(0);
+      }
+      return QString();
     }
-    return QString();
   }
 
   QString Protocol::getUERegisterStream(UE_Register stream) {
@@ -152,6 +161,8 @@ namespace tcp_messenger {
       type = SERVER_ACK;
     } else if (stream.contains(SERVER_ERROR_HEADER)) {
       type = SERVER_ERROR;
+    } else if (stream.contains(UE_MESSAGE_TEXT)) {
+      type = SERVER_FWD_TO_SENDER;
     } else {
       LOG (WARNING) << "Unrecognized input stream.";
       return QStringList();
@@ -188,7 +199,7 @@ namespace tcp_messenger {
     case SERVER_ERROR:
       return "SERVER_ERROR";
     default:
-      return "Unrecognized incoming stream";
+      return "SERVER_FWD_TO_SENDER";
     }
   }
 
@@ -202,7 +213,7 @@ namespace tcp_messenger {
 
   QStringList Protocol::extractFields(QStringList before) {
     QStringList after;
-    for (unsigned i = 0; i < before.size(); ++i) {
+    for (unsigned i = 0; i < before.size() - 1; ++i) {
       QString temp = before.at(i);
       after << temp.mid(temp.indexOf(OPEN) + 1, temp.lastIndexOf(CLOSE) - temp.indexOf(OPEN) - 1);
       DLOG (INFO) << "Obtained: " << after.at(i).toStdString();

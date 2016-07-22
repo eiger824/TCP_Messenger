@@ -193,10 +193,10 @@ namespace tcp_messenger {
     QString message;
     in >> message;
   
-    debugInfo("Stream received: " + message);
+    debugInfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Stream received: " + message);
 
-    ProtocolStreamType_UE type;
-    QStringList params = m_stream_generator->parseStream_UE(type,message);
+    ProtocolStreamType_Server type;
+    QStringList params = m_stream_generator->parseStream_Server(type,message);
     /********/
     for (auto param: params) {
       DLOG (INFO) << "Param: [" << param.toStdString() << "]";
@@ -246,10 +246,13 @@ namespace tcp_messenger {
       blockSize = 0;
       break;
       }
+      
     default:
       {
       debugInfo("Self message detected");
       DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
+      debugInfo("Setting seen status");
+      m_window->setMessageStatus((unsigned int) params.at(3).toInt(), 2);
       break;
       }
     }
@@ -559,8 +562,8 @@ namespace tcp_messenger {
     
       debugInfo("Message: [" + message + "]");
 
-      ProtocolStreamType_UE type;
-      QStringList params = m_stream_generator->parseStream_UE(type,message);
+      ProtocolStreamType_Server type;
+      QStringList params = m_stream_generator->parseStream_Server(type,message);
       /********/
       for (auto param: params) {
 	DLOG (INFO) << "Param: [" << param.toStdString() << "]";
@@ -571,6 +574,7 @@ namespace tcp_messenger {
 	{
 	  QStringList userlist = params.at(0).split("-");
 	  userlist.insert(0, "Select from list...");
+	  m_box->clear();
 	  m_box->addItems(userlist);
 	  debugInfo("Online users:" + userlist.join("-"));
 	  //create qmaps with empty conversations
@@ -614,6 +618,8 @@ namespace tcp_messenger {
 	{
 	  debugInfo("Self message detected");
 	  DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
+	  debugInfo("Setting seen status");
+	  m_window->setMessageStatus((unsigned int) params.at(3).toInt(), 2);
 	  break;
 	}
       }
