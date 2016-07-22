@@ -243,7 +243,6 @@ namespace tcp_messenger {
 	DLOG (INFO) <<"Sending information about currently online users...\n";
 	/*At this point, this block will be sent to all current users, not only to the
 	 user that is currently connected*/
-	//socket->write(block);
 	for (auto connection: m_online_users) {
 	  QTcpSocket *temp_socket = new QTcpSocket(this);
 	  temp_socket->connectToHost(QHostAddress(connection.ip), connection.rx_port);
@@ -273,8 +272,11 @@ namespace tcp_messenger {
 	logLabel->setText(logLabel->toPlainText() + "\n" + message);
 	//and send it back to the user
 	debugInfo("Going to resend message to dest client: [" + message + "]");
+	// ************************ THIS IS WRONG NOW, USE PARSING APPROACH ON PROTOCOL
 	QString dest,from;
 	QString content = filterMessage(dest,from,message);
+	
+	// ****************************************************************************
 	QByteArray block;
 	QDataStream out(&block, QIODevice::WriteOnly);
 	out.setVersion(QDataStream::Qt_4_0);

@@ -12,11 +12,11 @@ include_directories(system
 include_directories(
   src
   include
+  ${PROJECT_SOURCE_DIR}/utils/src
+  ${PROJECT_SOURCE_DIR}/utils/include
   )
 
 set(HEADERS_MOC
-  include/definitions.hpp
-  include/protocol.hpp
   include/client.hpp
   include/chatwrapper.hpp
   include/chat.hpp
@@ -25,7 +25,6 @@ set(HEADERS_MOC
 qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 
 set(SOURCES
-  src/protocol.cpp
   src/client.cpp
   src/chatwrapper.cpp
   src/chat.cpp
@@ -36,6 +35,8 @@ add_executable(client
   src/main.cpp
   ${MOC_HEADERS}
   ${SOURCES}
+  ${UTIL_HEADERS_MOC}
+  ${MOC_UTIL_HEADERS}
   )
 
 target_link_libraries(client
@@ -43,15 +44,16 @@ target_link_libraries(client
   Qt4::QtXml
   Qt4::QtNetwork
   ${GLOG_LIBRARIES}
+  Utils
   )
 
 install(TARGETS client DESTINATION ${PROJECT_BINARY_DIR}/cmake_targets)
 install(FILES
-  ${PROJECT_SOURCE_DIR}/images/online.png
-  ${PROJECT_SOURCE_DIR}/images/offline.png
-  ${PROJECT_SOURCE_DIR}/images/clock.png
-  ${PROJECT_SOURCE_DIR}/images/warning.png
-  ${PROJECT_SOURCE_DIR}/images/check.png
-  ${PROJECT_SOURCE_DIR}/images/seen.png
+  ${PROJECT_SOURCE_DIR}/utils/images/online.png
+  ${PROJECT_SOURCE_DIR}/utils/images/offline.png
+  ${PROJECT_SOURCE_DIR}/utils/images/clock.png
+  ${PROJECT_SOURCE_DIR}/utils/images/warning.png
+  ${PROJECT_SOURCE_DIR}/utils/images/check.png
+  ${PROJECT_SOURCE_DIR}/utils/images/seen.png
   DESTINATION ${CMAKE_INSTALL_PREFIX}/../images)
 
