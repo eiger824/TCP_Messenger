@@ -30,19 +30,19 @@ namespace tcp_messenger {
     return false;
   }
 
-  void ChatWrapper::newMessageFromUser(const QString& message, bool self, const QString& from) {
+  unsigned int ChatWrapper::newMessageFromUser(const QString& message, bool self, const QString& from) {
     //check if registered, just in case
     if (!m_current_users.contains(from)) {
       LOG (ERROR) << "Error: user " << from.toStdString() << " was not found. Returning...";
-      return;
+      return 0;
     } else {
-      qobject_cast<Chat*>(m_conver_stack->widget(m_current_users.indexOf(from)))->addMessage(message,self,from);
-      DLOG (INFO) << "Added message";
+      DLOG (INFO) << "Adding message";
+      return (qobject_cast<Chat*>(m_conver_stack->widget(m_current_users.indexOf(from)))->addMessage(message,self,from));
     }
   }
   
-  void ChatWrapper::setMessageStatus(int status) {
-    qobject_cast<Chat*>(m_conver_stack->currentWidget())->setMessageStatus(status);
+  void ChatWrapper::setMessageStatus(unsigned int message_id, int status) {
+    qobject_cast<Chat*>(m_conver_stack->currentWidget())->setMessageStatus(message_id, status);
   }
   
   void ChatWrapper::currentWindowChangedSlot(const QString& user) {

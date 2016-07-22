@@ -6,11 +6,9 @@
 #include <glog/logging.h>
 
 #include "client.hpp"
-#include "message.hpp"
+#include "definitions.hpp"
 
 namespace tcp_messenger {
-
-  static const quint16 LISTEN_PORT = 30500;
   
   Client::Client(QWidget *parent)
     :   QDialog(parent),
@@ -27,6 +25,8 @@ namespace tcp_messenger {
       m_status->setPixmap(image);
     } else m_status->setText("Error loading icon");
 
+    m_stream_generator = new Protocol(PROTOCOL_VERSION);
+    
     //chat window
     m_window = new ChatWrapper();
     m_window->setFixedSize(560,380);
@@ -193,16 +193,17 @@ namespace tcp_messenger {
     QString message;
     in >> message;
   
-    debugInfo("Data received: " + message);
-  
-    if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
-      QString users = message.mid(message.indexOf("(") + 1,
-				  message.indexOf(")") - message.indexOf("(") - 1);
-      QStringList userlist = users.split('-');
-      m_box->clear();
+    debugInfo("Stream received: " + message);
+
+    ProtocolStreamType_Server type;
+    QStringList params = m_stream_generator->parseStream_Server(type,message);
+    switch (type) {
+    case SERVER_ALL:
+      {
+      QStringList userlist = params.at(0).split("-");
       userlist.insert(0, "Select from list...");
       m_box->addItems(userlist);
-      debugInfo("Online users:" + users);
+      debugInfo("Online users:" + userlist.join("-"));
       //create qmaps with empty conversations
       for (unsigned i = 1; i < userlist.size(); ++i) {
 	//and create conversation windows if not exisiting
@@ -212,7 +213,6 @@ namespace tcp_messenger {
 	  debugInfo("User " + userlist.at(i) + " was already registered.");
 	}
       }
-      debugInfo("Created qmap object with empty conversations");
       //and change icon
       QPixmap image;
       if (image.load(QString::fromStdString("images/online.png"))) {
@@ -221,7 +221,16 @@ namespace tcp_messenger {
       }
       //and disable server fields
       enableServerFields(false);
-    } else if (message.contains("ue_error(")) {
+      break;
+      }
+    case SERVER_ACK:
+      {
+      m_window->setMessageStatus((unsigned int) params.at(1).toInt(), 1);
+      debugInfo("Message was seen");
+      break;
+      }
+    case SERVER_ERROR:
+      {
       QMessageBox::information(this, tr("Error"),
 			       tr("The connection was refused by the peer. "
 				  "A username matching yours was already found "
@@ -230,15 +239,16 @@ namespace tcp_messenger {
       enableGetFortuneButton();
       m_online = false;
       blockSize = 0;
-    } else if (message.contains("ue_message")) {
-      QString dest,from;
-      QString content = filterMessage(dest,from,message);
-      DLOG (INFO) << "Message received: " << content.toStdString();
-      m_window->newMessageFromUser(content, false, from);
-    } else if (message.contains("server_ack")) {
-      m_window->setMessageStatus(1);
+      break;
+      }
+    default:
+      {
+      debugInfo("Self message detected");
+      m_window->newMessageFromUser(params.at(0), false, params.at(2));
+      break;
+      }
     }
-
+  
     //reset blocksize
     blockSize=0;
 
@@ -314,30 +324,32 @@ namespace tcp_messenger {
 	messageLineEdit->isEnabled()) {
       QString message = messageLineEdit->toPlainText();
       
-      m_window->newMessageFromUser("Me:" + message,true,m_box->currentText());
+      unsigned int message_id =
+	m_window->newMessageFromUser("Me:" + message,true,m_box->currentText());
       
-      //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());
-      int nr = m_convers.remove(user);
-      //m_convers[user] = ;/*m_chat->toPlainText();*/
-      debugInfo("Updated qmap object");
       messageLineEdit->clear();
-
+      //Fill parameters to send
+      QStringList params;
+      params << message << user << usernameLineEdit->text() << QString::number(message_id);
       //and send it to the server
       blockSize = 0;
       m_transmission_socket->abort();
       m_transmission_socket->connectToHost(hostLineEdit->text(),
 					   portLineEdit->text().toInt());
+      QString string_stream =
+	m_stream_generator->constructStream_UE(params,							     ProtocolStreamType_UE::UE_MESSAGE);
+      
       QByteArray block;
       QDataStream out(&block, QIODevice::WriteOnly);
       out.setVersion(QDataStream::Qt_4_0);
       out << (quint16)0;
-      out << "ue_message(" + message + ");ue_dest(" + user + ");ue_from(" + usernameLineEdit->text() + ");";
+      out << string_stream;
       out.device()->seek(0);
       out << (quint16)(block.size() - sizeof(quint16));
-      debugInfo( "Transmitting message...");
+      debugInfo( "Transmitting stream: " + string_stream);
       m_transmission_socket->write(block);
-      DLOG (INFO) << "Message sent to server!";
+      DLOG (INFO) << "Stream sent to server!";
     }
   }
 

@@ -15,8 +15,10 @@ namespace tcp_messenger {
   public:
     Chat(const QString& name, QWidget *parent=0);
     ~Chat();
-    void addMessage(const QString& text, bool self, const QString& from);
-    void setMessageStatus(int status);
+    unsigned int addMessage(const QString& text, bool self, const QString& from);
+    void setMessageStatus(unsigned int message_id, int status);
+  private:
+    int getIndexOfMessageID(unsigned int message_id);
   private:
     QVBoxLayout *m_main_layout;
     QString m_name;

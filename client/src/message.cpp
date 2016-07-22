@@ -33,6 +33,8 @@ namespace tcp_messenger {
     connect(this, SIGNAL(statusChanged(STATUS)), this, SLOT(statusChangedSlot(STATUS)));
 
     m_status = SENDING;
+
+    m_message_id = rand() % 1000 + 1;
     
     setLayout(m_main_layout);
     show();
@@ -74,6 +76,7 @@ namespace tcp_messenger {
     connect(this, SIGNAL(statusChanged(STATUS)), this, SLOT(statusChangedSlot(STATUS)));
     
     m_status = SENDING;
+    m_message_id = rand() % 1000 + 1;
     
     setLayout(m_main_layout);
     
@@ -117,6 +120,14 @@ namespace tcp_messenger {
     }
   }
 
+  unsigned int Message::getMessageID() {
+    return m_message_id;
+  }
+
+  void Message::setMessageID(unsigned int id) {
+    m_message_id = id;
+  }
+  
   void Message::statusChangedSlot(STATUS status) {
     QPixmap image;
     switch (status) {

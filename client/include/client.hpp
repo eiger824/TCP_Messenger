@@ -8,6 +8,7 @@
 #include <string>
 
 #include "chatwrapper.hpp"
+#include "protocol.hpp"
 
 class QDialogButtonBox;
 class QLabel;
@@ -24,8 +25,6 @@ class QAbstractSocket;
 class QVBoxLayout;
 
 namespace tcp_messenger {
-
-  static const int ENTER = 16777220;
 
   class Client : public QDialog {
     Q_OBJECT
@@ -63,7 +62,6 @@ namespace tcp_messenger {
     QLabel *m_username;
     QLabel *m_connection_status;
     QLabel *m_status;
-    QTextEdit *m_chat;
     QLineEdit *hostLineEdit;
     QLineEdit *portLineEdit;
     QTextEdit *messageLineEdit;
@@ -82,8 +80,8 @@ namespace tcp_messenger {
     bool m_debug;
     QNetworkSession *networkSession;
     QComboBox *m_box;
-    QMap<QString,QString>m_convers;
     ChatWrapper *m_window;
+    Protocol *m_stream_generator;
   };
 }
 #endif

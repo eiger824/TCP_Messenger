@@ -19,7 +19,7 @@ namespace tcp_messenger {
 
   Chat::~Chat() {}
 
-  void Chat::addMessage(const QString& text, bool self, const QString& from) {    
+  unsigned int Chat::addMessage(const QString& text, bool self, const QString& from) {    
     if (m_main_layout->count() < MAX_MESSAGES - 1) {
       m_main_layout->addWidget(new Message(text,self));
     } else {
@@ -34,10 +34,25 @@ namespace tcp_messenger {
       last->newMessage(text);
       last->setSender(self);
     }
+    return (qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() -1 )->widget())->getMessageID());
   }
 
-  void Chat::setMessageStatus(int status) {
-    qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() - 1)->widget())->setMessageStatus(status);
+  void Chat::setMessageStatus(unsigned int message_id, int status) {
+    int index = getIndexOfMessageID(message_id);
+    if (index != -1) {
+      qobject_cast<Message*>(m_main_layout->itemAt(index)->widget())->setMessageStatus(status);
+    } else {
+      LOG (ERROR) << "Message ID " << message_id << " was not found on conversation. Returning.";
+    }
+  }
+
+  int Chat::getIndexOfMessageID(unsigned int message_id) {
+    for (unsigned i = 0; i < m_main_layout->count(); ++i) {
+      if (qobject_cast<Message*>(m_main_layout->itemAt(i)->widget())->getMessageID() == message_id) {
+	return i;
+      }
+    }
+    return -1;
   }
   
 }

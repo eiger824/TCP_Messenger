@@ -30,6 +30,8 @@ namespace tcp_messenger {
     void newMessage(const QString& text);
     void setMessageStatus(int status);
     void setSender(bool self);
+    unsigned int getMessageID();
+    void setMessageID(unsigned int id);
   signals:
     void statusChanged(STATUS status);
   private slots:
@@ -44,6 +46,7 @@ namespace tcp_messenger {
     bool m_self;
     QTimer *m_ack_timer;
     STATUS m_status;
+    unsigned int m_message_id;
   };
 }
 
