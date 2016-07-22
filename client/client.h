@@ -47,12 +47,14 @@ namespace tcp_messenger {
       void currentIndexChangedSlot(int index);
       void sendMessage();
       void newServerConnection();
-
+      void textChangedSlot();
+      void timeoutSlot();
   private:
       void keyPressEvent(QKeyEvent *event);
       QString filterMessage(QString& dest, QString& from, QString data);
       void debugInfo(const QString& info);
       void enableServerFields(bool enabled);
+      void sendTypingInfo();
   private:
       QLabel *hostLabel;
       QLabel *portLabel;
@@ -80,6 +82,7 @@ namespace tcp_messenger {
       QNetworkSession *networkSession;
       QComboBox *m_box;
       QMap<QString,QString>m_convers;
+      QTimer *m_typing_timer;
   };
 }
 #endif

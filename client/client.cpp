@@ -57,6 +57,12 @@ namespace tcp_messenger {
     messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
     messageLineEdit->setFixedHeight(100);
     messageLineEdit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+
+    m_typing_timer = new QTimer(this);
+    
+    connect(messageLineEdit, SIGNAL(textChanged()), this, SLOT(textChangedSlot()));
+    connect(m_typing_timer, SIGNAL(timeout()),this, SLOT(timeoutSlot()));
+
     portLineEdit->setValidator(new QIntValidator(1, 65535, this));
     usernameLineEdit = new QLineEdit("Santi");
 
@@ -560,6 +566,21 @@ namespace tcp_messenger {
 	}
 	//and disable server fields
 	enableServerFields(false);
+      } else if (message.contains("ue_typing")) {
+	//QString dest, from;
+	//QString content = filterMessage(dest, from, message);
+	QString from = message.mid(message.lastIndexOf("(") + 1, message.lastIndexOf(")") - 1 - message.lastIndexOf("("));
+	//next, change corresponding label
+	int index = m_box->findText(from);
+	if (index != -1)
+	  m_box->setCurrentIndex(index);
+	//and update text buffers
+	
+	if (m_chat->toPlainText() != "")
+	  m_chat->setText(m_chat->toPlainText() + "\n(" + from + " is typing...)");
+	else
+	  m_chat->setText("(" + from + " is typing...)");
+
       } else {
 	QString dest, from;
 	QString content = filterMessage(dest, from, message);
@@ -580,6 +601,37 @@ namespace tcp_messenger {
       }
     }
     blockSize=0;
+  }
+
+  void Client::textChangedSlot() {
+    debugInfo("Typing slot");
+    if (!m_typing_timer->isActive()) {
+      sendTypingInfo();
+      m_typing_timer->start(3000);
+    }
+  }
+
+  void Client::timeoutSlot() {
+    if (m_typing_timer->isActive()) {
+      m_typing_timer->stop();
+    }
+  }
+
+  void Client::sendTypingInfo() {
+    blockSize = 0;
+    m_transmission_socket->abort();
+    m_transmission_socket->connectToHost(hostLineEdit->text(),
+					 portLineEdit->text().toInt());
+    QByteArray block;
+    QDataStream out(&block, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_4_0);
+    out << (quint16)0;
+    out << "ue_typing();ue_dest(" + m_box->currentText() + ");";
+    out.device()->seek(0);
+    out << (quint16)(block.size() - sizeof(quint16));
+    debugInfo( "Alerting server of typing status...");
+    m_transmission_socket->write(block);
+    DLOG (INFO) << "Alerted!";
   }
   
 }

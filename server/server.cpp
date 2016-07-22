@@ -314,6 +314,41 @@ namespace tcp_messenger {
 	}
 	  
 	DLOG (INFO) << "Sent!";
+      } else if (message.contains("ue_typing")) {
+	QTcpSocket *dest_socket = new QTcpSocket(this);
+	QByteArray block;
+	QDataStream out(&block, QIODevice::WriteOnly);
+	out.setVersion(QDataStream::Qt_4_0);
+	out << (quint16)0;
+	out << message;
+	out.device()->seek(0);
+	out << (quint16)(block.size() - sizeof(quint16));
+	QString dest_ip;
+	quint16 dest_port;
+	QString dest = message.mid(message.lastIndexOf("(") + 1, message.lastIndexOf(")") - 1 - message.lastIndexOf("("));
+	debugInfo("Sending typing info to: " + dest);
+	int index = getIndexOfUEName(dest);
+	if (index != -1) {
+	  dest_ip = m_online_users.at(index).ip;
+	  dest_port = m_online_users.at(index).rx_port;
+	  debugInfo("Going to send typing info to " + dest_ip + ":" + QString::number(dest_port));
+	} else {
+	  LOG (ERROR) << "ERROR: name was not found on server. Returning...";
+	  return;
+	}
+	dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
+	if (!dest_socket->waitForConnected(2000)) {
+	  debugInfo("ERROR: request timed out");
+	} else {
+	  debugInfo("Established connection with client. Sending...");
+	  dest_socket->write(block);
+	  if (!dest_socket->waitForBytesWritten(5000)) {
+	    debugInfo("ERROR: transmission timed out");
+	  } else {
+	    debugInfo("Success! Message was forwarded to destination");
+	  }
+	  dest_socket->disconnectFromHost();
+	}
       }
     }
     //reset blocksize
