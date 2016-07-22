@@ -81,6 +81,7 @@ namespace tcp_messenger {
     QComboBox *m_box;
     ChatWrapper *m_window;
     Protocol *m_protocol;
+    quint16 m_listening_port;
   };
 }
 #endif

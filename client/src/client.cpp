@@ -12,7 +12,8 @@ namespace tcp_messenger {
   
   Client::Client(QWidget *parent)
     :   QDialog(parent),
-	networkSession(0) {
+	networkSession(0),
+	m_listening_port(LISTEN_PORT) {
     
     hostLabel = new QLabel(tr("&Server name:"));
     portLabel = new QLabel(tr("S&erver port:"));
@@ -363,19 +364,18 @@ namespace tcp_messenger {
 
   void Client::nowOnline() {
     //start listening server
-    quint16 listening_port = LISTEN_PORT;
     unsigned cnt = 0;
-    debugInfo("Attempting connection on port: " + QString::number(listening_port));
-    while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), listening_port)) {
-      if (listening_port <= 65535 && cnt < 10) {
-	listening_port += 2;
+    debugInfo("Attempting connection on port: " + QString::number(m_listening_port));
+    while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), m_listening_port)) {
+      if (m_listening_port <= 65535 && cnt < 10) {
+	m_listening_port += 2;
 	++cnt;
-	debugInfo("Error: Trying next port: " + QString::number(listening_port));
+	debugInfo("Error: Trying next port: " + QString::number(m_listening_port));
       } else break;
     }
-    if (listening_port < 65536) {
+    if (m_listening_port < 65536) {
       debugInfo("Success: client will listen to server @ " +
-		hostLineEdit->text() + ":" + QString::number(listening_port));
+		hostLineEdit->text() + ":" + QString::number(m_listening_port));
       
     } else {
       LOG (ERROR) << "No available ports were found. Closing client...";
