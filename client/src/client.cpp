@@ -364,12 +364,14 @@ namespace tcp_messenger {
   void Client::nowOnline() {
     //start listening server
     quint16 listening_port = LISTEN_PORT;
+    unsigned cnt = 0;
     debugInfo("Attempting connection on port: " + QString::number(listening_port));
     while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), listening_port)) {
-      if (listening_port <= 65535) {
+      if (listening_port <= 65535 && cnt < 10) {
 	listening_port += 2;
+	++cnt;
 	debugInfo("Error: Trying next port: " + QString::number(listening_port));
-      }
+      } else break;
     }
     if (listening_port < 65536) {
       debugInfo("Success: client will listen to server @ " +
