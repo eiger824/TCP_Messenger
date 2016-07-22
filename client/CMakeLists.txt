@@ -9,24 +9,28 @@ include_directories(system
   ${PROJ_INCLUDES}
   ${GLOG_INCLUDE_DIRS}
   )
+include_directories(
+  src
+  include
+  )
 
 set(HEADERS_MOC
-  client.hpp
-  chatwrapper.hpp
-  chat.hpp
-  message.hpp
+  include/client.hpp
+  include/chatwrapper.hpp
+  include/chat.hpp
+  include/message.hpp
   )
 qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 
 set(SOURCES
-  client.cpp
-  chatwrapper.cpp
-  chat.cpp
-  message.cpp
+  src/client.cpp
+  src/chatwrapper.cpp
+  src/chat.cpp
+  src/message.cpp
   )
 
 add_executable(client
-  main.cpp
+  src/main.cpp
   ${MOC_HEADERS}
   ${SOURCES}
   )
