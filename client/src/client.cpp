@@ -331,22 +331,22 @@ namespace tcp_messenger {
     if (!messageLineEdit->toPlainText().isEmpty() &&
 	messageLineEdit->isEnabled()) {
       QString message = messageLineEdit->toPlainText();
-      
+      QString dest_user = m_box->currentText();
       unsigned int message_id =
-	m_window->newMessageFromUser("Me:" + message,true,m_box->currentText());
+	m_window->newMessageFromUser("Me:" + message, true, dest_user);
       
-      QString user = m_box->itemText(m_box->currentIndex());
       messageLineEdit->clear();
       //Fill parameters to send
       QStringList params;
-      params << message << user << usernameLineEdit->text() << QString::number(message_id);
+      params << message << dest_user << usernameLineEdit->text() << QString::number(message_id);
       //and send it to the server
       blockSize = 0;
       m_transmission_socket->abort();
       m_transmission_socket->connectToHost(hostLineEdit->text(),
 					   portLineEdit->text().toInt());
       QString string_stream =
-	m_stream_generator->constructStream_UE(params,							     ProtocolStreamType_UE::UE_MESSAGE);
+	m_stream_generator->constructStream_UE(params,
+					       ProtocolStreamType_UE::UE_MESSAGE);
       
       QByteArray block;
       QDataStream out(&block, QIODevice::WriteOnly);

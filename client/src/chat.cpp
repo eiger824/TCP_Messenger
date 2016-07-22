@@ -21,7 +21,10 @@ namespace tcp_messenger {
 
   unsigned int Chat::addMessage(const QString& text, bool self, const QString& from) {    
     if (m_main_layout->count() < MAX_MESSAGES - 1) {
-      m_main_layout->addWidget(new Message(from + ":" + text,self));
+      if (!self)
+	m_main_layout->addWidget(new Message(from + ":" + text,self));
+      else
+	m_main_layout->addWidget(new Message(text,self));
     } else {
       Message *current, *next;
       for (unsigned i = 0; i < MAX_MESSAGES - 1; ++i) {
