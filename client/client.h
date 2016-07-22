@@ -5,6 +5,7 @@
 #include <QTcpSocket>
 #include <QKeyEvent>
 #include <QMap>
+#include <QTime>
 #include <string>
 
 class QDialogButtonBox;
@@ -48,13 +49,12 @@ namespace tcp_messenger {
       void sendMessage();
       void newServerConnection();
       void textChangedSlot();
-      void timeoutSlot();
   private:
       void keyPressEvent(QKeyEvent *event);
       QString filterMessage(QString& dest, QString& from, QString data);
       void debugInfo(const QString& info);
       void enableServerFields(bool enabled);
-      void sendTypingInfo();
+      void sendTypingInfo(bool typing);
   private:
       QLabel *hostLabel;
       QLabel *portLabel;
@@ -82,7 +82,8 @@ namespace tcp_messenger {
       QNetworkSession *networkSession;
       QComboBox *m_box;
       QMap<QString,QString>m_convers;
-      QTimer *m_typing_timer;
+      QTime m_elapsed;
+      bool m_already_sent;
   };
 }
 #endif

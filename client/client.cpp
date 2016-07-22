@@ -10,6 +10,7 @@
 namespace tcp_messenger {
 
   static const quint16 LISTEN_PORT = 30500;
+  static const int TYPING_TIMEOUT_INTERVAL = 1500;
   
   Client::Client(QWidget *parent)
     :   QDialog(parent), networkSession(0)
@@ -35,6 +36,7 @@ namespace tcp_messenger {
     blockSize=0;
     m_online = false;
     m_debug = false;
+    m_already_sent = false;
     // find out which IP to connect to
     QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
@@ -57,11 +59,8 @@ namespace tcp_messenger {
     messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
     messageLineEdit->setFixedHeight(100);
     messageLineEdit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-
-    m_typing_timer = new QTimer(this);
     
     connect(messageLineEdit, SIGNAL(textChanged()), this, SLOT(textChangedSlot()));
-    connect(m_typing_timer, SIGNAL(timeout()),this, SLOT(timeoutSlot()));
 
     portLineEdit->setValidator(new QIntValidator(1, 65535, this));
     usernameLineEdit = new QLineEdit("Santi");
@@ -408,7 +407,7 @@ namespace tcp_messenger {
       QDataStream out(&block, QIODevice::WriteOnly);
       out.setVersion(QDataStream::Qt_4_0);
       out << (quint16)0;
-      out << QString("ue_disconnect()");
+      out << QString("ue_disconnect();");
       out.device()->seek(0);
       out << (quint16)(block.size() - sizeof(quint16));
 
@@ -426,7 +425,12 @@ namespace tcp_messenger {
       if (image.load("images/offline.png")) {
 	m_status->setPixmap(image);
       } else m_status->setText("Error loading icon");
+      
       enableServerFields(true);
+      //and stop listening
+      m_listen_socket->close();
+      
+      debugInfo("Listening socket was closed");
     } else {
       DLOG (INFO) << "User already offline";
     }
@@ -605,19 +609,18 @@ namespace tcp_messenger {
 
   void Client::textChangedSlot() {
     debugInfo("Typing slot");
-    if (!m_typing_timer->isActive()) {
-      sendTypingInfo();
-      m_typing_timer->start(3000);
+    if (m_elapsed.restart() > TYPING_TIMEOUT_INTERVAL) {
+      sendTypingInfo(false);
+      m_already_sent = false;
+    } else {
+      if (!m_already_sent) {
+	sendTypingInfo(true);
+	m_already_sent = true;
+      }
     }
   }
 
-  void Client::timeoutSlot() {
-    if (m_typing_timer->isActive()) {
-      m_typing_timer->stop();
-    }
-  }
-
-  void Client::sendTypingInfo() {
+  void Client::sendTypingInfo(bool typing) {
     blockSize = 0;
     m_transmission_socket->abort();
     m_transmission_socket->connectToHost(hostLineEdit->text(),
@@ -626,7 +629,8 @@ namespace tcp_messenger {
     QDataStream out(&block, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_4_0);
     out << (quint16)0;
-    out << "ue_typing();ue_dest(" + m_box->currentText() + ");";
+    out << "ue_typing(" + QString::number(static_cast<int>(typing))
+      + ");ue_dest(" + m_box->currentText() + ");";
     out.device()->seek(0);
     out << (quint16)(block.size() - sizeof(quint16));
     debugInfo( "Alerting server of typing status...");
