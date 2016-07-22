@@ -35,5 +35,9 @@ namespace tcp_messenger {
       last->setSender(self);
     }
   }
+
+  void Chat::setMessageStatus(int status) {
+    qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() - 1)->widget())->setMessageStatus(status);
+  }
   
 }

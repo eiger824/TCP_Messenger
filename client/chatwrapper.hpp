@@ -17,6 +17,7 @@ namespace tcp_messenger {
     ~ChatWrapper();
     bool addUser(const QString& from);
     void newMessageFromUser(const QString& message, bool self, const QString& from);
+    void setMessageStatus(int status);
   private slots:
     void currentWindowChangedSlot(const QString& user);
   private:

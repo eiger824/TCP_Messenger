@@ -40,7 +40,11 @@ namespace tcp_messenger {
       DLOG (INFO) << "Added message";
     }
   }
-
+  
+  void ChatWrapper::setMessageStatus(int status) {
+    qobject_cast<Chat*>(m_conver_stack->currentWidget())->setMessageStatus(status);
+  }
+  
   void ChatWrapper::currentWindowChangedSlot(const QString& user) {
     DLOG (INFO) << "Changing conversation...";
     m_conver_stack->setCurrentIndex(m_current_users.indexOf(user));

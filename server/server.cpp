@@ -282,7 +282,7 @@ namespace tcp_messenger {
 	out << message;
 	out.device()->seek(0);
 	out << (quint16)(block.size() - sizeof(quint16));
-	if (dest.contains("[Me]")) {
+	if (dest == from) {
 	  debugInfo("WARNING: Message intended for self UE. Sending back to user...");
 	  socket->write(block);
 	} else {
@@ -310,6 +310,20 @@ namespace tcp_messenger {
 	      debugInfo("Success! Message was forwarded to destination");
 	    }
 	    dest_socket->disconnectFromHost();
+	    //and send an ack to the user to inform that message was received
+	    QByteArray ack_data;
+	    QDataStream ack(&ack_data, QIODevice::WriteOnly);
+	    ack.setVersion(QDataStream::Qt_4_0);
+	    ack << (quint16)0;
+	    ack << QString("server_ack();");
+	    ack.device()->seek(0);
+	    debugInfo("Sending ack to user: "  + from);
+	    socket->write(ack_data);
+	    if (!socket->waitForBytesWritten(2000)) {
+	      LOG (ERROR) << "ERROR: transmission timeout!";
+	    } else {
+	      debugInfo("Success!");
+	    }
 	  }
 	}
 	  

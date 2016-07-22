@@ -176,9 +176,7 @@ namespace tcp_messenger {
 
   void Client::dataReceived()
   {
-    if (m_debug)
-      DLOG (INFO) << "Reading incoming data from server...";
-    //2)server response with online users
+    debugInfo("Reading incoming data from server...");
     QDataStream in(m_transmission_socket);
     in.setVersion(QDataStream::Qt_4_0);
 
@@ -195,24 +193,23 @@ namespace tcp_messenger {
     QString message;
     in >> message;
   
-    if (m_debug)
-      DLOG (INFO) << "Data received: " << message.toStdString();
+    debugInfo("Data received: " + message);
   
     if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
       QString users = message.mid(message.indexOf("(") + 1,
 				  message.indexOf(")") - message.indexOf("(") - 1);
-      QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "[Me]");
-      QStringList userlist = showing_users.split('-');
+      QStringList userlist = users.split('-');
+      m_box->clear();
+      userlist.insert(0, "Select from list...");
       m_box->addItems(userlist);
-      debugInfo("Online users:" + showing_users);
+      debugInfo("Online users:" + users);
       //create qmaps with empty conversations
-      for (auto user: userlist) {
-	m_convers[user] = "";
+      for (unsigned i = 1; i < userlist.size(); ++i) {
 	//and create conversation windows if not exisiting
-	if (m_window->addUser(user)) {
-	  debugInfo("User " + user + " added to conversation stack");
+	if (m_window->addUser(userlist.at(i))) {
+	  debugInfo("User " + userlist.at(i) + " added to conversation stack");
 	} else {
-	  debugInfo("User " + user + " was already registered.");
+	  debugInfo("User " + userlist.at(i) + " was already registered.");
 	}
       }
       debugInfo("Created qmap object with empty conversations");
@@ -233,18 +230,13 @@ namespace tcp_messenger {
       enableGetFortuneButton();
       m_online = false;
       blockSize = 0;
-    } else {
+    } else if (message.contains("ue_message")) {
       QString dest,from;
       QString content = filterMessage(dest,from,message);
       DLOG (INFO) << "Message received: " << content.toStdString();
-      //m_chat->setText(m_chat->toPlainText() + "\n" + dest + ": " + content);
-      
-      //update qmap object for current user
-      QString user = m_box->itemText(m_box->currentIndex());
-      int nr = m_convers.remove(user);
-      //m_convers[user] = ; /*m_chat->toPlainText();*/
-      debugInfo("Updated qmap object");
-      getFortuneButton->setEnabled(true);
+      m_window->newMessageFromUser(content, false, from);
+    } else if (message.contains("server_ack")) {
+      m_window->setMessageStatus(1);
     }
 
     //reset blocksize
@@ -321,12 +313,8 @@ namespace tcp_messenger {
     if (!messageLineEdit->toPlainText().isEmpty() &&
 	messageLineEdit->isEnabled()) {
       QString message = messageLineEdit->toPlainText();
-      /*if (m_chat->toPlainText() != "") 
-	m_chat->setText(m_chat->toPlainText() + "\nMe: " + message);
-      else
-      m_chat->setText("Me: " + message);*/
-
-      m_window->newMessageFromUser(message,true,m_box->currentText());
+      
+      m_window->newMessageFromUser("Me:" + message,true,m_box->currentText());
       
       //update qmap object for current user
       QString user = m_box->itemText(m_box->currentIndex());
@@ -511,10 +499,11 @@ namespace tcp_messenger {
 
   void Client::currentIndexChangedSlot(int index) {
     QString current_conver = m_box->itemText(index);
-    //m_chat->setText(m_convers[current_conver]);
-    emit currentWindowChanged(current_conver);
-    debugInfo("New index: " + QString::number(index) + " (chatting with " + current_conver + ")");
-    debugInfo("Switched conversation");
+    if (index != 0) {
+      emit currentWindowChanged(current_conver);
+      debugInfo("New index: " + QString::number(index) + " (chatting with " + current_conver + ")");
+      debugInfo("Switched conversation");
+    }
     if (index == 0) {
       //disable message field
       messageLineEdit->setEnabled(false);
@@ -556,23 +545,20 @@ namespace tcp_messenger {
       if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
 	QString users = message.mid(message.indexOf("(") + 1,
 				    message.indexOf(")") - message.indexOf("(") - 1);
-	QString showing_users = users.insert(users.indexOf(usernameLineEdit->text()) + usernameLineEdit->text().size(), "[Me]");
-	QStringList userlist = showing_users.split('-');
+	QStringList userlist = users.split('-');
 	m_box->clear();
 	userlist.insert(0, "Select from list...");
 	m_box->addItems(userlist);
-	debugInfo("Online users:" + showing_users);
+	debugInfo("Online users:" + users);
 	//create qmaps with empty conversations
-	for (auto user: userlist) {
-	  m_convers[user] = "";
+	for (unsigned i = 1; i < userlist.size(); ++i) {
 	  //and create conversation windows if not exisiting
-	  if (m_window->addUser(user)) {
-	    debugInfo("User " + user + " added to conversation stack");
+	  if (m_window->addUser(userlist.at(i))) {
+	    debugInfo("User " + userlist.at(i) + " added to conversation stack");
 	  } else {
-	    debugInfo("User " + user + " was already registered.");
+	    debugInfo("User " + userlist.at(i) + " was already registered.");
 	  }
 	}
-	debugInfo("Created qmap object with empty conversations");
 	//and change icon
 	QPixmap image;
 	if (image.load(QString::fromStdString("images/online.png"))) {
@@ -590,16 +576,8 @@ namespace tcp_messenger {
 	if (index != -1)
 	  m_box->setCurrentIndex(index);
 	//and update text buffers
-
-	m_window->newMessageFromUser(content,false,from);
+	m_window->newMessageFromUser(from + ":" + content,false,from);
 	
-	/*if (m_chat->toPlainText() != "")
-	  m_chat->setText(m_chat->toPlainText() + "\n" + from + ":" + content);
-	else
-	m_chat->setText(from + ":" + content);*/
-
-	int nr = m_convers.remove(m_box->currentText());
-	//m_convers[m_box->currentText()] = ;/*m_chat->toPlainText();*/
       }
     }
     blockSize=0;
