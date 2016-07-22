@@ -5,7 +5,7 @@
 #include <iostream>
 #include <glog/logging.h>
 
-#include "server.h"
+#include "server.hpp"
 
 namespace tcp_messenger {
 

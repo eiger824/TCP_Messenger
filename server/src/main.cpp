@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "server.h"
+#include "server.hpp"
 
 using namespace tcp_messenger;
 
