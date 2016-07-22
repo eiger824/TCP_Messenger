@@ -67,7 +67,8 @@ namespace tcp_messenger {
     SERVER_ALL,
     SERVER_ACK,
     SERVER_ERROR,
-    SERVER_FWD_TO_SENDER
+    SERVER_FWD_TO_SENDER,
+    SERVER_FWD_TO_DEST
   };
   
   struct UE_Register {

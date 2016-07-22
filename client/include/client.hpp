@@ -52,7 +52,6 @@ namespace tcp_messenger {
     void currentWindowChanged(const QString& user);
   private:
     void keyPressEvent(QKeyEvent *event);
-    QString filterMessage(QString& dest, QString& from, QString data);
     void debugInfo(const QString& info);
     void enableServerFields(bool enabled);
   private:
@@ -81,7 +80,7 @@ namespace tcp_messenger {
     QNetworkSession *networkSession;
     QComboBox *m_box;
     ChatWrapper *m_window;
-    Protocol *m_stream_generator;
+    Protocol *m_protocol;
   };
 }
 #endif

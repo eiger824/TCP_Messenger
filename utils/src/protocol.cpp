@@ -7,7 +7,7 @@ namespace tcp_messenger {
   Protocol::~Protocol() {}
 
   QString Protocol::constructStream_UE(QStringList params,
-					      tcp_messenger::ProtocolStreamType_UE stream_type) {
+				       tcp_messenger::ProtocolStreamType_UE stream_type) {
     switch (stream_type) {
     case UE_REGISTER:
       {
@@ -51,7 +51,7 @@ namespace tcp_messenger {
   }
 
   QString Protocol::constructStream_Server(QStringList params,
-						  tcp_messenger::ProtocolStreamType_Server stream_type) {
+					   tcp_messenger::ProtocolStreamType_Server stream_type) {
     switch (stream_type) {
     case SERVER_ALL:
       {
@@ -71,6 +71,13 @@ namespace tcp_messenger {
 	DLOG (INFO) << "Forwarding stream to user, no need to create new";
 	return params.at(0);
       }
+    case SERVER_FWD_TO_DEST:
+      {
+	DLOG (INFO) << "Forwarding stream to user, no need to create new";
+	return params.at(0);
+      }
+    default:
+      DLOG (INFO) << "Invalid stream type, returning empty";
       return QString();
     }
   }
@@ -163,6 +170,8 @@ namespace tcp_messenger {
       type = SERVER_ERROR;
     } else if (stream.contains(UE_MESSAGE_TEXT)) {
       type = SERVER_FWD_TO_SENDER;
+    } else if (stream.contains(UE_ACK_ID)) {
+      type = SERVER_FWD_TO_DEST;
     } else {
       LOG (WARNING) << "Unrecognized input stream.";
       return QStringList();
@@ -198,6 +207,8 @@ namespace tcp_messenger {
       return "SERVER_ACK";
     case SERVER_ERROR:
       return "SERVER_ERROR";
+    case SERVER_FWD_TO_DEST:
+      return "SERVER_FWD_TO_DEST";
     default:
       return "SERVER_FWD_TO_SENDER";
     }

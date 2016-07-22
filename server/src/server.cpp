@@ -158,198 +158,283 @@ namespace tcp_messenger {
       QString message;
       in >> message;
     
-      debugInfo("Message: [" + message + "]");
-    
-      //step to register UE name to server after first connection
-      if (message.contains("ue_name")) {
-	QString temp_name = message.mid(8, message.indexOf(")") - message.indexOf("(") - 1);
-	quint16 temp_port = (quint16) message.mid(message.lastIndexOf("(") + 1,
-					message.lastIndexOf(")") - message.lastIndexOf("(") - 1).toInt();
-	DLOG (INFO) << "Parsed port: " << temp_port;
-	if (temp_name.isEmpty()) {
-	  return;
-	}
-	UE temp;
-	int index;
-	if (!isThisNameRegistered(temp_name)) {
-	  //case for same ip, different name
-	  debugInfo("New user " + temp_name + " connected from same IP. Registering user.");
-	  temp.name = temp_name;
-	  temp.ip = socket->peerAddress().toString();
-	  //parse ue_rx_port
-	  temp.rx_port = temp_port;
-	  index = getIndexOfUEIp(socket->peerAddress().toString());
-	  if (m_online_users.at(index).name.isEmpty()) {
-	    //first time, when username is still empty
-	    if (index != -1) {
-	      temp = m_online_users.at(index);
-	      temp.name = temp_name;
-	      temp.rx_port = temp_port;
-	      m_online_users.replace(index,temp);
+      debugInfo("------------------------------------------------_>Message: [" + message + "]");
+
+      ProtocolStreamType_UE type;
+      QStringList params = m_protocol->parseStream_UE(type, message);
+
+      switch (type) {
+      case UE_REGISTER:
+	{
+	  QString temp_name = params.at(0);
+	  quint16 temp_port = (quint16) params.at(1).toInt();
+	  DLOG (INFO) << "Parsed port: " << temp_port;
+	  if (temp_name.isEmpty()) {
+	    return;
+	  }
+	  UE temp;
+	  int index;
+	  if (!isThisNameRegistered(temp_name)) {
+	    //case for same ip, different name
+	    debugInfo("New user " + temp_name + " connected from same IP. Registering user.");
+	    temp.name = temp_name;
+	    temp.ip = socket->peerAddress().toString();
+	    //parse ue_rx_port
+	    temp.rx_port = temp_port;
+	    index = getIndexOfUEIp(socket->peerAddress().toString());
+	    if (m_online_users.at(index).name.isEmpty()) {
+	      //first time, when username is still empty
+	      if (index != -1) {
+		temp = m_online_users.at(index);
+		temp.name = temp_name;
+		temp.rx_port = temp_port;
+		m_online_users.replace(index,temp);
+	      }
+	    } else {
+	      //same ip but different username, then append new UE
+	      m_online_users.append(temp);
 	    }
 	  } else {
-	    //same ip but different username, then append new UE
-	    m_online_users.append(temp);
+	    LOG (ERROR) << "User already exists on server. Notifying user...";
+	    //inform user of currently online users
+	    QByteArray block;
+	    QDataStream out(&block, QIODevice::WriteOnly);
+	    out.setVersion(QDataStream::Qt_4_0);
+	    out << (quint16)0;
+	    out << QString("ue_error(Existing user on server. Choose other username);");
+	    out.device()->seek(0);
+	    out << (quint16)(block.size() - sizeof(quint16));
+	    DLOG (INFO) <<"Sending error message to UE ...\n";
+	    logLabel->setText(logLabel->toPlainText()
+			      + "\nError: attempted connection with same "
+			      "username from same IP. Sending error to client...");
+	    socket->write(block);
+	    //reset blocksize
+	    blockSize = 0;
+	    return;
 	  }
-	} else {
-	  LOG (ERROR) << "User already exists on server. Notifying user...";
+	  DLOG (INFO) << "New user is online: " << temp;
+	  debugInfo("Nr. online users: " + QString::number(m_online_users.size()));
+	  if (logLabel->toPlainText() != "") {
+	    logLabel->setText(logLabel->toPlainText() + "\n[" + temp.name + "]@" +
+			      temp.ip + ":" +
+			      QString::number(temp.rx_port) + " is now online.");
+	  } else {
+	    logLabel->setText(logLabel->toPlainText() + "[" + temp.name + "]@" +
+			      temp.ip + ":" +
+			      QString::number(temp.rx_port) + " is now online.");
+	  }
+	  //parse online users
+	  QString users;
+	  for (auto user: m_online_users) {
+	    users += user.name + "\n";
+	  }
+	  users.chop(1);
+	  onlineUsers->setText(users);
+	  qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
+									  + QString::number(m_online_users.size()) + "):");
 	  //inform user of currently online users
 	  QByteArray block;
 	  QDataStream out(&block, QIODevice::WriteOnly);
 	  out.setVersion(QDataStream::Qt_4_0);
 	  out << (quint16)0;
-	  out << QString("ue_error(Existing user on server. Choose other username);");
+	  QStringList params;
+	  for (auto user: m_online_users) {
+	    params << user.name;
+	  }
+	  out << m_protocol->constructStream_Server(params,
+						    ProtocolStreamType_Server::SERVER_ALL);
 	  out.device()->seek(0);
 	  out << (quint16)(block.size() - sizeof(quint16));
-	  DLOG (INFO) <<"Sending error message to UE ...\n";
-	  logLabel->setText(logLabel->toPlainText()
-			    + "\nError: attempted connection with same "
-			    "username from same IP. Sending error to client...");
-	  socket->write(block);
-	  //reset blocksize
-	  blockSize = 0;
-	  return;
-	}
-	DLOG (INFO) << "New user is online: " << temp;
-	debugInfo("Nr. online users: " + QString::number(m_online_users.size()));
-	if (logLabel->toPlainText() != "") {
-	  logLabel->setText(logLabel->toPlainText() + "\n[" + temp.name + "]@" +
-			    temp.ip + ":" +
-			    QString::number(temp.rx_port) + " is now online.");
-	} else {
-	  logLabel->setText(logLabel->toPlainText() + "[" + temp.name + "]@" +
-			    temp.ip + ":" +
-			    QString::number(temp.rx_port) + " is now online.");
-	}
-	//parse online users
-	QString users;
-	for (auto user: m_online_users) {
-	  users += user.name + "\n";
-	}
-	users.chop(1);
-	onlineUsers->setText(users);
-	qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
-									+ QString::number(m_online_users.size()) + "):");
-	//inform user of currently online users
-	QByteArray block;
-	QDataStream out(&block, QIODevice::WriteOnly);
-	out.setVersion(QDataStream::Qt_4_0);
-	out << (quint16)0;
-	QStringList params;
-	for (auto user: m_online_users) {
-	  params << user.name;
-	}
-	out << m_protocol->constructStream_Server(params,
-						  ProtocolStreamType_Server::SERVER_ALL);
-	out.device()->seek(0);
-	out << (quint16)(block.size() - sizeof(quint16));
-	DLOG (INFO) <<"Sending information about currently online users...\n";
-	/*At this point, this block will be sent to all current users, not only to the
-	 user that is currently connected*/
-	for (auto connection: m_online_users) {
-	  QTcpSocket *temp_socket = new QTcpSocket(this);
-	  temp_socket->connectToHost(QHostAddress(connection.ip), connection.rx_port);
-	  if (!temp_socket->waitForConnected(3000)) {
-	    LOG (ERROR) << "ERROR: Connection attempt @"
-			<< connection.ip.toStdString() << ":"
-			<< connection.rx_port << " timed out. Omitting current...";
-	  } else {
-	    debugInfo("Connection to client @" + connection.ip + ":"
-		      + QString::number(connection.rx_port) + " was established. Now sending...");
-	    temp_socket->write(block);
-	    if (!temp_socket->waitForBytesWritten()) {
+	  DLOG (INFO) <<"Sending information about currently online users...\n";
+	  /*At this point, this block will be sent to all current users, not only to the
+	    user that is currently connected*/
+	  for (auto connection: m_online_users) {
+	    QTcpSocket *temp_socket = new QTcpSocket(this);
+	    temp_socket->connectToHost(QHostAddress(connection.ip), connection.rx_port);
+	    if (!temp_socket->waitForConnected(3000)) {
 	      LOG (ERROR) << "ERROR: Connection attempt @"
-			<< connection.ip.toStdString() << ":"
-			<< connection.rx_port << " timed out. Omitting current...";
+			  << connection.ip.toStdString() << ":"
+			  << connection.rx_port << " timed out. Omitting current...";
 	    } else {
-	      debugInfo("Transmission to client @" + connection.ip + ":"
-			+ QString::number(connection.rx_port) + " was successful!");
+	      debugInfo("Connection to client @" + connection.ip + ":"
+			+ QString::number(connection.rx_port) + " was established. Now sending...");
+	      temp_socket->write(block);
+	      if (!temp_socket->waitForBytesWritten()) {
+		LOG (ERROR) << "ERROR: Connection attempt @"
+			    << connection.ip.toStdString() << ":"
+			    << connection.rx_port << " timed out. Omitting current...";
+	      } else {
+		debugInfo("Transmission to client @" + connection.ip + ":"
+			  + QString::number(connection.rx_port) + " was successful!");
+	      }
+	    }
+	    temp_socket->disconnectFromHost();
+	    if (temp_socket->state() == QAbstractSocket::UnconnectedState ||
+		temp_socket->waitForDisconnected(1000)) {
+	      debugInfo("Socket disconnected.");
 	    }
 	  }
-	  temp_socket->disconnectFromHost();
-	  if (temp_socket->state() == QAbstractSocket::UnconnectedState ||
-	      temp_socket->waitForDisconnected(1000)) {
-	    debugInfo("Socket disconnected.");
-	  }
+
+	  break;
+
+	  
 	}
-      } else if (message.contains("ue_disconnect")) {
-	unregisterUser();
-      } else if (message.contains("ue_message")) { //regular message
-	logLabel->setText(logLabel->toPlainText() + "\n" + message);
-	//and send it back to the user
-	debugInfo("Going to resend message to dest client: [" + message + "]");
-	ProtocolStreamType_UE type;
-	QStringList params = m_protocol->parseStream_UE(type, message);
-	QString content = params.at(0);
-	QString dest = params.at(1);
-	QString from = params.at(2);
-	unsigned int message_id = (unsigned int) params.at(3).toInt();
-	DLOG (INFO) << "Message: " << content.toStdString() << ", from " << from.toStdString()
-		    << " and to " << dest.toStdString()
-		    << ", with message ID: " << message_id;
-	QByteArray block;
-	QDataStream out(&block, QIODevice::WriteOnly);
-	out.setVersion(QDataStream::Qt_4_0);
-	out << (quint16)0;
-	out << m_protocol->constructStream_Server(QStringList(message),
-						  ProtocolStreamType_Server::SERVER_FWD_TO_SENDER);
-	out.device()->seek(0);
-	out << (quint16)(block.size() - sizeof(quint16));
-	if (dest == from) {
-	  debugInfo("WARNING: Message intended for self UE. Sending back to user...");
-	  socket->write(block);
-	  if (!socket->waitForBytesWritten(2000)) {
-	    LOG (ERROR) << "ERROR: transmission timeout";
-	  } else {
-	    debugInfo("Success!");
-	  }
-	} else {
-	  QTcpSocket *dest_socket = new QTcpSocket(this);
+      case UE_ACK:
+	{
+	  debugInfo("Going to forward user ack to destination");
+	  QByteArray block;
+	  QDataStream out(&block, QIODevice::WriteOnly);
+	  out.setVersion(QDataStream::Qt_4_0);
+	  out << (quint16)0;
+	  out << m_protocol->constructStream_Server(QStringList(message),
+						    ProtocolStreamType_Server::SERVER_FWD_TO_SENDER);
+	  out.device()->seek(0);
+	  out << (quint16)(block.size() - sizeof(quint16));
+
+	  //and lookup destination details for given user
+	  QString dest = params.at(0);
+	  QString from = params.at(1);
+	  unsigned int message_id = (unsigned int) params.at(2).toInt();
+
+	  //Create temporary socket
+	  QTcpSocket* dest_socket = new QTcpSocket(this);
 	  QString dest_ip;
 	  quint16 dest_port;
 	  int index = getIndexOfUEName(dest);
 	  if (index != -1) {
 	    dest_ip = m_online_users.at(index).ip;
 	    dest_port = m_online_users.at(index).rx_port;
-	    debugInfo("Going to forward message to " + dest_ip + ":" + QString::number(dest_port));
+	    debugInfo("Going to forward ack to " + dest_ip + ":" + QString::number(dest_port));
 	  } else {
 	    LOG (ERROR) << "ERROR: name was not found on server. Returning...";
 	    return;
 	  }
 	  dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
+
 	  if (!dest_socket->waitForConnected(2000)) {
 	    debugInfo("ERROR: request timed out");
 	  } else {
-	    debugInfo("Established connection with client. Sending...");
+	    debugInfo("Established connection with client. Forwarding user ack...");
 	    dest_socket->write(block);
 	    if (!dest_socket->waitForBytesWritten(5000)) {
 	      debugInfo("ERROR: transmission timed out");
 	    } else {
-	      debugInfo("Success! Message was forwarded to destination");
+	      debugInfo("Success! ACK was forwarded to destination");
 	    }
 	    dest_socket->disconnectFromHost();
-	    //and send an ack to the user to inform that message was received
-	    QByteArray ack_data;
-	    QDataStream ack(&ack_data, QIODevice::WriteOnly);
-	    ack.setVersion(QDataStream::Qt_4_0);
-	    ack << (quint16)0;
-	    QStringList params;
-	    params << from << QString::number(message_id);
-	    ack << m_protocol->constructStream_Server(params,
-						      ProtocolStreamType_Server::SERVER_ACK);
-	    ack.device()->seek(0);
-	    debugInfo("Sending ack to user: "  + from);
-	    socket->write(ack_data);
+	  }
+	  break;
+	}
+      case UE_ERROR:
+	{
+	  debugInfo("Some error encountered by user. Returning ...");
+	  blockSize=0;
+	  return;
+	}
+      case UE_MESSAGE:
+	{
+	  logLabel->setText(logLabel->toPlainText() + "\n" + message);
+	  //and send it back to the user
+	  debugInfo("Going to resend message to dest client: [" + message + "]");
+	  
+	  QString content = params.at(0);
+	  QString dest = params.at(1);
+	  QString from = params.at(2);
+	  unsigned int message_id = (unsigned int) params.at(3).toInt();
+	  
+	  DLOG (INFO) << "Message: " << content.toStdString() << ", from " << from.toStdString()
+		      << " and to " << dest.toStdString()
+		      << ", with message ID: " << message_id;
+	  QByteArray block;
+	  QDataStream out(&block, QIODevice::WriteOnly);
+	  out.setVersion(QDataStream::Qt_4_0);
+	  out << (quint16)0;
+	  out << m_protocol->constructStream_Server(QStringList(message),
+						    ProtocolStreamType_Server::SERVER_FWD_TO_SENDER);
+	  out.device()->seek(0);
+	  out << (quint16)(block.size() - sizeof(quint16));
+	  if (dest == from) {
+	    debugInfo("WARNING: Message intended for self UE. Sending back to user...");
+	    socket->write(block);
 	    if (!socket->waitForBytesWritten(2000)) {
-	      LOG (ERROR) << "ERROR: transmission timeout!";
+	      LOG (ERROR) << "ERROR: transmission timeout";
 	    } else {
 	      debugInfo("Success!");
 	    }
+	  } else {
+	    QTcpSocket *dest_socket = new QTcpSocket(this);
+	    QString dest_ip;
+	    quint16 dest_port;
+	    int index = getIndexOfUEName(dest);
+	    if (index != -1) {
+	      dest_ip = m_online_users.at(index).ip;
+	      dest_port = m_online_users.at(index).rx_port;
+	      debugInfo("Going to forward message to " + dest_ip + ":" + QString::number(dest_port));
+	    } else {
+	      LOG (ERROR) << "ERROR: name was not found on server. Returning...";
+	      return;
+	    }
+	    dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
+	    if (!dest_socket->waitForConnected(2000)) {
+	      debugInfo("ERROR: request timed out");
+	    } else {
+	      debugInfo("Established connection with client. Sending...");
+	      dest_socket->write(block);
+	      if (!dest_socket->waitForBytesWritten(5000)) {
+		debugInfo("ERROR: transmission timed out");
+	      } else {
+		debugInfo("Success! Message was forwarded to destination");
+	      }
+	      dest_socket->disconnectFromHost();
+	      //and send an ack to the user to inform that message was received
+	      QByteArray ack_data;
+	      QDataStream ack(&ack_data, QIODevice::WriteOnly);
+	      ack.setVersion(QDataStream::Qt_4_0);
+	      ack << (quint16)0;
+	      QStringList params;
+	      params << from << QString::number(message_id);
+	      ack << m_protocol->constructStream_Server(params,
+							ProtocolStreamType_Server::SERVER_ACK);
+	      ack.device()->seek(0);
+	      debugInfo("Sending ack to user: "  + from);
+	      socket->write(ack_data);
+	      if (!socket->waitForBytesWritten(2000)) {
+		LOG (ERROR) << "ERROR: transmission timeout!";
+	      } else {
+		debugInfo("Success!");
+	      }
+	    }
 	  }
-	}
+
+
+
+
+
+	  break;
+
+
 	  
-	DLOG (INFO) << "Sent!";
+	}
+      case UE_UNREGISTER:
+	{
+	  unregisterUser();
+	  break;
+	}
+      case UE_TYPING:
+	{
+	}
+      default:
+	LOG (WARNING) << "Unrecognized stream type";
       }
+    
+      if (message.contains("ue_message")) { //regular message
+
+
+
+	
+	
+      } //end of ue message
     }
     //reset blocksize
     blockSize=0;

@@ -25,7 +25,7 @@ namespace tcp_messenger {
       m_status->setPixmap(image);
     } else m_status->setText("Error loading icon");
 
-    m_stream_generator = new Protocol(PROTOCOL_VERSION);
+    m_protocol = new Protocol(PROTOCOL_VERSION);
     
     //chat window
     m_window = new ChatWrapper();
@@ -193,10 +193,10 @@ namespace tcp_messenger {
     QString message;
     in >> message;
   
-    debugInfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Stream received: " + message);
+    debugInfo("Stream received: " + message);
 
     ProtocolStreamType_Server type;
-    QStringList params = m_stream_generator->parseStream_Server(type,message);
+    QStringList params = m_protocol->parseStream_Server(type,message);
     /********/
     for (auto param: params) {
       DLOG (INFO) << "Param: [" << param.toStdString() << "]";
@@ -345,8 +345,8 @@ namespace tcp_messenger {
       m_transmission_socket->connectToHost(hostLineEdit->text(),
 					   portLineEdit->text().toInt());
       QString string_stream =
-	m_stream_generator->constructStream_UE(params,
-					       ProtocolStreamType_UE::UE_MESSAGE);
+	m_protocol->constructStream_UE(params,
+				       ProtocolStreamType_UE::UE_MESSAGE);
       
       QByteArray block;
       QDataStream out(&block, QIODevice::WriteOnly);
@@ -365,10 +365,11 @@ namespace tcp_messenger {
     //start listening server
     quint16 listening_port = LISTEN_PORT;
     debugInfo("Attempting connection on port: " + QString::number(listening_port));
-    while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), listening_port) &&
-	   listening_port <= 65535) {
-      listening_port += 2;
-      debugInfo("Error: Trying next port: " + QString::number(listening_port));
+    while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), listening_port)) {
+      if (listening_port <= 65535) {
+	listening_port += 2;
+	debugInfo("Error: Trying next port: " + QString::number(listening_port));
+      }
     }
     if (listening_port < 65536) {
       debugInfo("Success: client will listen to server @ " +
@@ -389,7 +390,10 @@ namespace tcp_messenger {
     QDataStream out(&block, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_4_0);
     out << (quint16)0;
-    out << QString("ue_name(" + usernameLineEdit->text() + ");ue_rx_port(" + QString::number(listening_port) + ")");
+    QStringList params;
+    params << usernameLineEdit->text() << QString::number(m_listen_socket->serverPort());
+    out << m_protocol->constructStream_UE(params,
+					  ProtocolStreamType_UE::UE_REGISTER);
     out.device()->seek(0);
     out << (quint16)(block.size() - sizeof(quint16));
 
@@ -446,24 +450,6 @@ namespace tcp_messenger {
     } else {
       DLOG (INFO) << "User already offline";
     }
-  }
-
-  QString Client::filterMessage(QString& dest, QString& from, QString data) {
-    //currently, a data structure has the following format
-    //    ue_message(message);ue_dest(dest);ue_from(sender);
-    //This function extracts both dest and message
-    int i1 = data.indexOf("ue_message") + QString("ue_message").size() + 1;
-    int i2 = data.indexOf("ue_dest") - 2;
-    int i3 = data.indexOf("ue_dest") + QString("ue_dest").size() + 1;
-    int i4 = data.indexOf("ue_from") - 2;
-    int i5 = data.indexOf("ue_from") + QString("ue_from").size() + 1;
-    int i6 = data.lastIndexOf(";") - 1;
-    dest = data.mid(i3, i4 - i3);
-    from = data.mid(i5, i6 - i5);
-    debugInfo("Parsed dest:" + dest);
-    debugInfo("Parsed sender:" + from);
-    debugInfo("Parsed message:" + data.mid(i1, i2 - i1));
-    return data.mid(i1, i2 - i1);
   }
 
   void Client::setData(bool debug_mode,
@@ -563,7 +549,7 @@ namespace tcp_messenger {
       debugInfo("Message: [" + message + "]");
 
       ProtocolStreamType_Server type;
-      QStringList params = m_stream_generator->parseStream_Server(type,message);
+      QStringList params = m_protocol->parseStream_Server(type,message);
       /********/
       for (auto param: params) {
 	DLOG (INFO) << "Param: [" << param.toStdString() << "]";
@@ -614,54 +600,51 @@ namespace tcp_messenger {
 	  blockSize = 0;
 	  break;
 	}
+      case SERVER_FWD_TO_DEST:
+	{
+	  QString dest = params.at(0);
+	  QString from = params.at(1);
+	  unsigned int message_id = (unsigned int) params.at(2).toInt();
+	  //extra check
+	  debugInfo("@@@ ack received, FROM: " + from + ", TO: " + dest + ", to MESSAGE ID: " +
+		    QString::number(message_id));
+	  if (dest == usernameLineEdit->text()) {
+	    m_window->setMessageStatus(message_id, 2);
+	    debugInfo("Message was successfully sent & seen!");
+	  }
+	}
       default:
 	{
-	  debugInfo("Self message detected");
-	  DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
-	  debugInfo("Setting seen status");
-	  m_window->setMessageStatus((unsigned int) params.at(3).toInt(), 2);
+	  debugInfo("New message was received");
+	  unsigned int message_id =
+	    m_window->newMessageFromUser(params.at(0), false, params.at(2));
+	  
+	  debugInfo("Now sending ACK to user " + params.at(2) + ", to message ID: " + QString::number(message_id));
+	  blockSize = 0;
+	  m_transmission_socket->abort();
+	  m_transmission_socket->connectToHost(hostLineEdit->text(),
+					       portLineEdit->text().toInt());
+	  QByteArray block;
+	  QDataStream out(&block, QIODevice::WriteOnly);
+	  out.setVersion(QDataStream::Qt_4_0);
+	  out << (quint16)0;
+	  QStringList ack_params;
+	  ack_params << params.at(2) << usernameLineEdit->text() << QString::number(message_id);
+	  out << m_protocol->constructStream_UE(ack_params,
+						ProtocolStreamType_UE::UE_ACK);
+	  out.device()->seek(0);
+	  out << (quint16)(block.size() - sizeof(quint16));
+
+	  m_transmission_socket->write(block);
+	  if (!m_transmission_socket->waitForBytesWritten(2000)) {
+	    LOG (ERROR) << "ERROR: transmission timeout.";
+	  } else {
+	    debugInfo("Success! ACK was sent to server");
+	  }
+	  m_transmission_socket->disconnectFromHost();
 	  break;
 	}
       }
-  
-
-      /*if (message.contains("ue_all(", Qt::CaseSensitive)) { //info about users
-	QString users = message.mid(message.indexOf("(") + 1,
-				    message.indexOf(")") - message.indexOf("(") - 1);
-	QStringList userlist = users.split('-');
-	m_box->clear();
-	userlist.insert(0, "Select from list...");
-	m_box->addItems(userlist);
-	debugInfo("Online users:" + users);
-	//create qmaps with empty conversations
-	for (unsigned i = 1; i < userlist.size(); ++i) {
-	  //and create conversation windows if not exisiting
-	  if (m_window->addUser(userlist.at(i))) {
-	    debugInfo("User " + userlist.at(i) + " added to conversation stack");
-	  } else {
-	    debugInfo("User " + userlist.at(i) + " was already registered.");
-	  }
-	}
-	//and change icon
-	QPixmap image;
-	if (image.load(QString::fromStdString("images/online.png"))) {
-	  m_status->setPixmap(image);
-	  debugInfo("Icon changed!");
-	}
-	//and disable server fields
-	enableServerFields(false);
-      } else {
-	QString dest, from;
-	QString content = filterMessage(dest, from, message);
-	
-	//next, change corresponding label
-	int index = m_box->findText(from);
-	if (index != -1)
-	  m_box->setCurrentIndex(index);
-	//and update text buffers
-	m_window->newMessageFromUser(from + ":" + content,false,from);
-	
-      }*/
     }
     blockSize=0;
   }
