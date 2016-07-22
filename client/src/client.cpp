@@ -393,7 +393,7 @@ namespace tcp_messenger {
     out.setVersion(QDataStream::Qt_4_0);
     out << (quint16)0;
     QStringList params;
-    params << usernameLineEdit->text() << QString::number(m_listen_socket->serverPort());
+    params << usernameLineEdit->text() << QString::number(m_listening_port);
     out << m_protocol->constructStream_UE(params,
 					  ProtocolStreamType_UE::UE_REGISTER);
     out.device()->seek(0);
