@@ -32,6 +32,7 @@ namespace tcp_messenger {
     void setSender(bool self);
     unsigned int getMessageID();
     void setMessageID(unsigned int id);
+    QString getText();
   signals:
     void statusChanged(STATUS status);
   private slots:

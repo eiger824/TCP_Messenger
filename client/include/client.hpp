@@ -48,12 +48,15 @@ namespace tcp_messenger {
     void currentIndexChangedSlot(int index);
     void sendMessage();
     void newServerConnection();
+    void textChangedSlot();
+    void timeoutSlot();
   signals:
     void currentWindowChanged(const QString& user);
   private:
     void keyPressEvent(QKeyEvent *event);
     void debugInfo(const QString& info);
     void enableServerFields(bool enabled);
+    void sendTypingInfo(bool typing);
   private:
     QLabel *m_hostname_label;
     QLabel *m_port_label;
@@ -81,6 +84,8 @@ namespace tcp_messenger {
     ChatWrapper *m_window;
     Protocol *m_protocol;
     quint16 m_listening_port;
+    QTimer *m_typing_timer;
+    bool m_typing_hold;
   };
 }
 #endif

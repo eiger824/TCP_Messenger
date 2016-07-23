@@ -41,13 +41,40 @@ namespace tcp_messenger {
     }
   }
   
-  void ChatWrapper::setMessageStatus(unsigned int message_id, int status) {
-    qobject_cast<Chat*>(m_conver_stack->currentWidget())->setMessageStatus(message_id, status);
+  void ChatWrapper::setMessageStatus(const QString& from, unsigned int message_id, int status) {
+    int index = getIndexOfUser(from);
+    if (index != -1)
+      qobject_cast<Chat*>(m_conver_stack->widget(index))->setMessageStatus(message_id, status);
+    else
+      LOG (ERROR) << "Error: user " << from.toStdString() << " was not found";
   }
   
   void ChatWrapper::currentWindowChangedSlot(const QString& user) {
     DLOG (INFO) << "Changing conversation...";
     m_conver_stack->setCurrentIndex(m_current_users.indexOf(user));
+  }
+
+  int ChatWrapper::getIndexOfUser(const QString& user) {
+    for (unsigned i = 0; i < m_current_users.size(); ++i) {
+      if (m_current_users.at(i) == user) {
+	return i;
+      }
+    }
+    return -1;
+  }
+  
+  void ChatWrapper::setTypingNotifier(const QString& from, bool status) {
+    if (status)
+      DLOG (INFO) << from.toStdString() << " is now typing...";
+    else
+      DLOG (INFO) << from.toStdString() << " stopped typing";
+    
+    int index = getIndexOfUser(from);
+    if (index != -1) {
+      qobject_cast<Chat*>(m_conver_stack->widget(index))->setTypingNotifier(status);
+    } else {
+      LOG (ERROR) << "Error: user " << from.toStdString() << " was not found.";
+    }
   }
   
 }

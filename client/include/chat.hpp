@@ -17,6 +17,7 @@ namespace tcp_messenger {
     ~Chat();
     unsigned int addMessage(const QString& text, bool self, const QString& from);
     void setMessageStatus(unsigned int message_id, int status);
+    void setTypingNotifier(bool status);
   private:
     int getIndexOfMessageID(unsigned int message_id);
   private:

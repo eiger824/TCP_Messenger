@@ -75,6 +75,15 @@ namespace tcp_messenger {
 	DLOG (INFO) << "Forwarding stream to user, no need to create new";
 	return params.at(0);
       }
+    case SERVER_FWD_TYPING:
+      {
+	DLOG (INFO) << "Forwarding typing stream to user. no need to create new";
+	Server_FwdTyping out;
+	out.dest = params.at(0);
+	out.from = params.at(1);
+	out.status = (bool) params.at(2).toInt();
+	return getServerFwdTypingStream(out);
+      }
     default:
       DLOG (INFO) << "Invalid stream type, returning empty";
       return QString();
@@ -138,6 +147,19 @@ namespace tcp_messenger {
 	    CLOSE + SEMICOLON);
   }
 
+  QString Protocol::getServerFwdTypingStream(Server_FwdTyping stream) {
+    return (UE_TYPING_DEST + OPEN +
+	    stream.dest +
+	    CLOSE + SEMICOLON +
+	    UE_TYPING_FROM + OPEN +
+	    stream.from +
+	    CLOSE + SEMICOLON +
+	    UE_TYPING_STATUS + OPEN +
+	    QString::number(stream.status) +
+	    CLOSE + SEMICOLON
+	    );
+  }
+
   QStringList Protocol::parseStream_UE(ProtocolStreamType_UE& type, QString stream) {
     //first, determine which type of stream it is
     if (stream.contains(UE_MESSAGE_TEXT)) {
@@ -168,6 +190,8 @@ namespace tcp_messenger {
       type = SERVER_FWD_TO_SENDER;
     } else if (stream.contains(UE_ACK_ID)) {
       type = SERVER_FWD_TO_DEST;
+    } else if (stream.contains(UE_TYPING_STATUS)) {
+      type = SERVER_FWD_TYPING;
     } else {
       LOG (WARNING) << "Unrecognized input stream.";
       return QStringList();
@@ -205,6 +229,8 @@ namespace tcp_messenger {
       return "SERVER_ERROR";
     case SERVER_FWD_TO_DEST:
       return "SERVER_FWD_TO_DEST";
+    case SERVER_FWD_TYPING:
+      return "SERVER_FWD_TYPING";
     default:
       return "SERVER_FWD_TO_SENDER";
     }

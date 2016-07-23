@@ -31,6 +31,7 @@ namespace tcp_messenger {
     QString getUETypingAlertStream(UE_TypingAlert stream);
 
     QString getServerOutgoingAckStream(Server_OutgoingAck stream);
+    QString getServerFwdTypingStream(Server_FwdTyping stream);
 
     QStringList getUEStreamFields(QString stream);
     QStringList getServerStreamFields(QString stream);

@@ -34,7 +34,7 @@ namespace tcp_messenger {
 
   static const QString UE_ERROR_HEADER = "ue_error";
 
-  static const QString UE_TYPING_DEST = "ue_typing_dest;";
+  static const QString UE_TYPING_DEST = "ue_typing_dest";
   static const QString UE_TYPING_FROM = "ue_typing_from";
   static const QString UE_TYPING_STATUS = "ue_typing_status";
 
@@ -67,7 +67,8 @@ namespace tcp_messenger {
     SERVER_ACK,
     SERVER_ERROR,
     SERVER_FWD_TO_SENDER,
-    SERVER_FWD_TO_DEST
+    SERVER_FWD_TO_DEST,
+    SERVER_FWD_TYPING
   };
   
   struct UE_Register {
@@ -89,6 +90,12 @@ namespace tcp_messenger {
   };
 
   struct UE_TypingAlert {
+    QString dest;
+    QString from;
+    bool status;
+  };
+
+  struct Server_FwdTyping {
     QString dest;
     QString from;
     bool status;

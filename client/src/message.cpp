@@ -131,6 +131,10 @@ namespace tcp_messenger {
   void Message::setMessageID(unsigned int id) {
     m_message_id = id;
   }
+
+  QString Message::getText() {
+    return m_text_label->text();
+  }
   
   void Message::statusChangedSlot(STATUS status) {
     QPixmap image;

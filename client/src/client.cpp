@@ -13,7 +13,8 @@ namespace tcp_messenger {
   Client::Client(QWidget *parent)
     :   QDialog(parent),
 	m_network_session(0),
-	m_listening_port(LISTEN_PORT) {
+	m_listening_port(LISTEN_PORT),
+	m_typing_hold(false) {
     
     m_hostname_label = new QLabel(tr("&Server name:"));
     m_port_label = new QLabel(tr("S&erver port:"));
@@ -31,8 +32,6 @@ namespace tcp_messenger {
     //chat window
     m_window = new ChatWrapper();
     m_window->setFixedSize(560,380);
-    //m_window->setObjectName("ChatWindowWrapper");
-    //m_window->setStyleSheet("#ChatWindowWrapper {background-color: white; border : 2px solid black;}");
     
     connect(this, SIGNAL(currentWindowChanged(const QString&)), m_window,
 	    SLOT(currentWindowChangedSlot(const QString&)));
@@ -63,6 +62,9 @@ namespace tcp_messenger {
     m_message_lineedit->setStyleSheet("background-color: #C0C0C0;");
     m_message_lineedit->setFixedHeight(100);
     m_message_lineedit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+
+    m_typing_timer = new QTimer(this);
+    
     m_port_lineedit->setValidator(new QIntValidator(1, 65535, this));
     m_username_lineedit = new QLineEdit("Santi");
 
@@ -83,14 +85,18 @@ namespace tcp_messenger {
     m_button_box->addButton(m_connect_to_host, QDialogButtonBox::ActionRole);
     m_button_box->addButton(m_disconnect_from_host, QDialogButtonBox::RejectRole);
 
-    //investigate how to set local ports!
     m_connection_socket = new QTcpSocket(this);
-    //m_connection_socket->setLocalPort(30500);
     m_transmission_socket = new QTcpSocket(this);
-    //m_transmission_socket->setLocalPort(30502);
     m_listen_socket = new QTcpServer(this);
+
+    m_checkbox = new QCheckBox("Enable debug messages on background", this);
+
+    m_box = new QComboBox;
+    m_box->addItem("Select from list...");
+
+    QPushButton *send = new QPushButton(tr("&Send"));
+     
     connect(m_listen_socket, SIGNAL(newConnection()), this, SLOT(newServerConnection()));
-  
     connect(m_host_lineedit, SIGNAL(textChanged(QString)),
 	    this, SLOT(enableConnectButton()));
     connect(m_port_lineedit, SIGNAL(textChanged(QString)),
@@ -105,15 +111,10 @@ namespace tcp_messenger {
 	    SLOT(nowOnline()));
     connect(m_connection_socket, SIGNAL(disconnected()), this,
 	    SLOT(nowOffline()));
-
-    m_checkbox = new QCheckBox("Enable debug messages on background", this);
+    connect(m_message_lineedit, SIGNAL(textChanged()), this, SLOT(textChangedSlot()));
+    connect(m_typing_timer, SIGNAL(timeout()), this, SLOT(timeoutSlot()));
     connect(m_checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
-
-    m_box = new QComboBox;
-    m_box->addItem("Select from list...");
     connect(m_box, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChangedSlot(int)));
-
-    QPushButton *send = new QPushButton(tr("&Send"));
     connect(send, SIGNAL(clicked()), this, SLOT(sendMessage()));
   
     QGridLayout *mainLayout = new QGridLayout;
@@ -206,55 +207,57 @@ namespace tcp_messenger {
     switch (type) {
     case SERVER_ALL:
       {
-      QStringList userlist = params.at(0).split("-");
-      userlist.insert(0, "Select from list...");
-      m_box->addItems(userlist);
-      debugInfo("Online users:" + userlist.join("-"));
-      //create qmaps with empty conversations
-      for (unsigned i = 1; i < userlist.size(); ++i) {
-	//and create conversation windows if not exisiting
-	if (m_window->addUser(userlist.at(i))) {
-	  debugInfo("User " + userlist.at(i) + " added to conversation stack");
-	} else {
-	  debugInfo("User " + userlist.at(i) + " was already registered.");
+	QStringList userlist = params.at(0).split("-");
+	userlist.insert(0, "Select from list...");
+	m_box->addItems(userlist);
+	debugInfo("Online users:" + userlist.join("-"));
+	//create qmaps with empty conversations
+	for (unsigned i = 1; i < userlist.size(); ++i) {
+	  //and create conversation windows if not exisiting
+	  if (m_window->addUser(userlist.at(i))) {
+	    debugInfo("User " + userlist.at(i) + " added to conversation stack");
+	  } else {
+	    debugInfo("User " + userlist.at(i) + " was already registered.");
+	  }
 	}
-      }
-      //and change icon
-      QPixmap image;
-      if (image.load(QString::fromStdString("images/online.png"))) {
-	m_status->setPixmap(image);
-	debugInfo("Icon changed!");
-      }
-      //and disable server fields
-      enableServerFields(false);
-      break;
+	//and change icon
+	QPixmap image;
+	if (image.load(QString::fromStdString("images/online.png"))) {
+	  m_status->setPixmap(image);
+	  debugInfo("Icon changed!");
+	}
+	//and disable server fields
+	enableServerFields(false);
+	break;
       }
     case SERVER_ACK:
       {
-      m_window->setMessageStatus((unsigned int) params.at(1).toInt(), 1);
-      debugInfo("Message was seen");
-      break;
+	m_window->setMessageStatus(m_username_lineedit->text(),
+				   (unsigned int) params.at(1).toInt(), 1);
+	debugInfo("Message was seen");
+	break;
       }
     case SERVER_ERROR:
       {
-      QMessageBox::information(this, tr("Error"),
-			       tr("The connection was refused by the peer. "
-				  "A username matching yours was already found "
-				  "on the server on the same IP. "
-				  "Choose a different username."));
-      enableConnectButton();
-      m_online = false;
-      m_block_size = 0;
-      break;
+	QMessageBox::information(this, tr("Error"),
+				 tr("The connection was refused by the peer. "
+				    "A username matching yours was already found "
+				    "on the server on the same IP. "
+				    "Choose a different username."));
+	enableConnectButton();
+	m_online = false;
+	m_block_size = 0;
+	break;
       }
       
     default:
       {
-      debugInfo("Self message detected");
-      DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
-      debugInfo("Setting seen status");
-      m_window->setMessageStatus((unsigned int) params.at(3).toInt(), 2);
-      break;
+	debugInfo("Self message detected");
+	DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
+	debugInfo("Setting seen status");
+	m_window->setMessageStatus(m_username_lineedit->text(),
+				   (unsigned int) params.at(3).toInt(), 2);
+	break;
       }
     }
   
@@ -295,8 +298,8 @@ namespace tcp_messenger {
   void Client::enableConnectButton()
   {
     m_connect_to_host->setEnabled((!m_network_session || m_network_session->isOpen()) &&
-				 !m_host_lineedit->text().isEmpty() &&
-				 !m_port_lineedit->text().isEmpty());
+				  !m_host_lineedit->text().isEmpty() &&
+				  !m_port_lineedit->text().isEmpty());
 
   }
 
@@ -448,6 +451,9 @@ namespace tcp_messenger {
 	m_status->setPixmap(image);
       } else m_status->setText("Error loading icon");
       enableServerFields(true);
+      //and close listening socket
+      m_listen_socket->close();
+      debugInfo("Success: listening socket was closed!");
     } else {
       DLOG (INFO) << "User already offline";
     }
@@ -585,7 +591,8 @@ namespace tcp_messenger {
 	}
       case SERVER_ACK:
 	{
-	  m_window->setMessageStatus((unsigned int) params.at(1).toInt(), 1);
+	  m_window->setMessageStatus(m_username_lineedit->text(),
+				     (unsigned int) params.at(1).toInt(), 1);
 	  debugInfo("Message was seen");
 	  break;
 	}
@@ -610,9 +617,18 @@ namespace tcp_messenger {
 	  debugInfo("@@@ ack received, FROM: " + from + ", TO: " + dest + ", to MESSAGE ID: " +
 		    QString::number(message_id));
 	  if (dest == m_username_lineedit->text()) {
-	    m_window->setMessageStatus(message_id, 2);
+	    m_window->setMessageStatus(from, message_id, 2);
 	    debugInfo("Message was successfully sent & seen!");
 	  }
+	  break;
+	}
+      case SERVER_FWD_TYPING:
+	{
+	  QString dest = params.at(0);
+	  QString from = params.at(1);
+	  QString status = params.at(2);
+	  debugInfo("(" + dest + "," + from + "," + status + ")");
+	  m_window->setTypingNotifier(from, (bool) status.toInt());
 	  break;
 	}
       default:
@@ -654,5 +670,66 @@ namespace tcp_messenger {
     }
     m_block_size=0;
   }
-  
+
+  void Client::textChangedSlot() {
+    m_typing_timer->start(1000);
+    if (!m_typing_hold) {
+      //then we send the typing information
+      debugInfo("Text changing, going to send typing info");
+      sendTypingInfo(true);
+      //and lock the variable
+      m_typing_hold = true;
+    }
+  }
+
+  void Client::timeoutSlot() {
+    if (m_typing_timer->isActive()) {
+      debugInfo("Going to stop typing timer");
+      m_typing_timer->stop();
+      //then we sent the typing information
+      debugInfo("Text stopped changing, going to send typing info");
+      sendTypingInfo(false);
+      //and unlock the variable
+      m_typing_hold = false;
+    }
+  }
+
+  void Client::sendTypingInfo(bool typing) {
+    m_block_size = 0;
+    m_transmission_socket->abort();
+    m_transmission_socket->connectToHost(m_host_lineedit->text(),
+					 m_port_lineedit->text().toInt());
+    debugInfo("Attempting connection on: " + m_host_lineedit->text() + ":" + m_port_lineedit->text());
+    if (!m_transmission_socket->waitForConnected(3000)) {
+      LOG (ERROR) << "ERROR: Connection timeout.";
+      m_block_size = 0;
+      return;
+    } else {
+      int nr = (int) typing;
+      QByteArray block;
+      QDataStream out(&block, QIODevice::WriteOnly);
+      out.setVersion(QDataStream::Qt_4_0);
+      out << (quint16)0;
+      QStringList typing_params;
+      typing_params << m_box->currentText() << m_username_lineedit->text() << QString::number(nr);
+      debugInfo("ABOUT TO SEND TYPING: PARAMETERS(" +
+		m_box->currentText() + "," +
+		m_username_lineedit->text() + "," +
+		QString::number(nr) + ")");
+    
+      out << m_protocol->constructStream_UE(typing_params,
+					    ProtocolStreamType_UE::UE_TYPING);
+      out.device()->seek(0);
+      out << (quint16)(block.size() - sizeof(quint16));
+    
+      m_transmission_socket->write(block);
+      if (!m_transmission_socket->waitForBytesWritten(2000)) {
+	LOG (ERROR) << "ERROR: transmission timeout.";
+      } else {
+	debugInfo("Success! Typing information was sent to server");
+      }
+      m_transmission_socket->disconnectFromHost();
+    }
+  }
+
 }

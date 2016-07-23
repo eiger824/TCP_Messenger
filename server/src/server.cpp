@@ -158,7 +158,7 @@ namespace tcp_messenger {
       QString message;
       in >> message;
     
-      debugInfo("------------------------------------------------_>Message: [" + message + "]");
+      debugInfo(">Message: [" + message + "]");
 
       ProtocolStreamType_UE type;
       QStringList params = m_protocol->parseStream_UE(type, message);
@@ -410,15 +410,7 @@ namespace tcp_messenger {
 	      }
 	    }
 	  }
-
-
-
-
-
 	  break;
-
-
-	  
 	}
       case UE_UNREGISTER:
 	{
@@ -427,18 +419,63 @@ namespace tcp_messenger {
 	}
       case UE_TYPING:
 	{
+	  debugInfo("User is typing...");
+	  logLabel->setText(logLabel->toPlainText() + "\n" + message);
+	  //no need to parse parameters, going to forward to user
+	  
+	  QString dest = params.at(0);
+	  QString from = params.at(1);
+
+	  debugInfo(dest + "," + from);
+	  
+	  QByteArray typing_data;
+	  QDataStream typing_stream(&typing_data, QIODevice::WriteOnly);
+	  typing_stream.setVersion(QDataStream::Qt_4_0);
+	  typing_stream << (quint16)0;
+	  QStringList typing_params;
+	  typing_params << params.at(0) << params.at(1) << params.at(2);
+	  typing_stream << m_protocol->constructStream_Server(typing_params,
+							      ProtocolStreamType_Server::SERVER_FWD_TYPING);
+	  typing_stream.device()->seek(0);
+
+	  DLOG (INFO) << "Sending: " << m_protocol->constructStream_Server(typing_params,
+							    ProtocolStreamType_Server::SERVER_FWD_TYPING).toStdString();
+	  
+	  QTcpSocket *dest_socket = new QTcpSocket(this);
+	  QString dest_ip;
+	  quint16 dest_port;
+	  int index = getIndexOfUEName(dest);
+	  if (index != -1) {
+	    dest_ip = m_online_users.at(index).ip;
+	    dest_port = m_online_users.at(index).rx_port;
+	    debugInfo("Going to forward typing info to " +
+		      dest_ip + ":" + QString::number(dest_port));
+	  } else {
+	    LOG (ERROR) << "ERROR: name was not found on server. Returning...";
+	    blockSize=0;
+	    return;
+	  }
+	  dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
+	  if (!dest_socket->waitForConnected(2000)) {
+	    debugInfo("ERROR: request timed out");
+	  } else {
+	    debugInfo("Established connection with client. Sending...");
+	    dest_socket->write(typing_data);
+	    if (!dest_socket->waitForBytesWritten(5000)) {
+	      debugInfo("ERROR: transmission timed out");
+	    } else {
+	      debugInfo("Success! Typing information was forwarded to destination");
+	    }
+	    dest_socket->disconnectFromHost();
+	  }
+
+	  break;
 	}
       default:
 	LOG (WARNING) << "Unrecognized stream type";
+	break;
       }
     
-      if (message.contains("ue_message")) { //regular message
-
-
-
-	
-	
-      } //end of ue message
     }
     //reset blocksize
     blockSize=0;
