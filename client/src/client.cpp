@@ -361,6 +361,10 @@ namespace tcp_messenger {
       debugInfo( "Transmitting stream: " + string_stream);
       m_transmission_socket->write(block);
       DLOG (INFO) << "Stream sent to server!";
+      //if typing timer is active, just stop it
+      if (m_typing_timer->isActive()) {
+	m_typing_timer->stop();
+      }
     }
   }
 
