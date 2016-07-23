@@ -40,10 +40,9 @@ namespace tcp_messenger {
     case UE_TYPING:
       UE_TypingAlert out;
       {
-	out.message = params.at(0);
-	out.dest = params.at(1);
-	out.from = params.at(2);
-	out.status = (bool) params.at(3).toInt();
+	out.dest = params.at(0);
+	out.from = params.at(1);
+	out.status = (bool) params.at(2).toInt();
 	return getUETypingAlertStream(out);
       }
     }
@@ -119,10 +118,7 @@ namespace tcp_messenger {
   }
   
   QString Protocol::getUETypingAlertStream(UE_TypingAlert stream) {
-    return (UE_TYPING_HEADER + OPEN +
-	    stream.message +
-	    CLOSE + SEMICOLON +
-	    UE_TYPING_DEST + OPEN +
+    return (UE_TYPING_DEST + OPEN +
 	    stream.dest +
 	    CLOSE + SEMICOLON +
 	    UE_TYPING_FROM + OPEN +
@@ -150,7 +146,7 @@ namespace tcp_messenger {
       type = UE_REGISTER;
     } else if (stream.contains(UE_UNREGISTER_DISCONNECT)) {
       type = UE_UNREGISTER;
-    } else if (stream.contains(UE_TYPING_HEADER)) {
+    } else if (stream.contains(UE_TYPING_STATUS)) {
       type = UE_TYPING;
     } else if (stream.contains(UE_ACK_ID)) {
       type = UE_ACK;
