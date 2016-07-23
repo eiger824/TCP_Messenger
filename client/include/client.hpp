@@ -86,6 +86,7 @@ namespace tcp_messenger {
     quint16 m_listening_port;
     QTimer *m_typing_timer;
     bool m_typing_hold;
+    QLabel *m_typing_label;
   };
 }
 #endif

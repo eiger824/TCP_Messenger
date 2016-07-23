@@ -28,6 +28,8 @@ namespace tcp_messenger {
     } else m_status->setText("Error loading icon");
 
     m_protocol = new Protocol(PROTOCOL_VERSION);
+
+    m_typing_label = new QLabel();
     
     //chat window
     m_window = new ChatWrapper();
@@ -130,11 +132,12 @@ namespace tcp_messenger {
     mainLayout->addWidget(new QLabel("Select user from list:"), 5, 0);
     mainLayout->addWidget(m_box, 6, 0);
     mainLayout->addWidget(m_checkbox, 6, 1);
-    mainLayout->addWidget(m_window, 7, 0, 1, 2, Qt::AlignCenter);
-    mainLayout->addWidget(m_message_label, 8, 0);
-    mainLayout->addWidget(m_message_lineedit, 8, 1);
-    mainLayout->addWidget(send, 8, 2);
-    mainLayout->addWidget(m_status_label, 9, 0, 1, 2);
+    mainLayout->addWidget(m_typing_label, 7,0);
+    mainLayout->addWidget(m_window, 8, 0, 1, 2, Qt::AlignCenter);
+    mainLayout->addWidget(m_message_label, 9, 0);
+    mainLayout->addWidget(m_message_lineedit, 9, 1);
+    mainLayout->addWidget(send, 9, 2);
+    mainLayout->addWidget(m_status_label, 10, 0, 1, 2);
     setLayout(mainLayout);
 
     setWindowTitle(tr("TCP Messenger by Santiago Pagola"));
@@ -632,7 +635,13 @@ namespace tcp_messenger {
 	  QString from = params.at(1);
 	  QString status = params.at(2);
 	  debugInfo("(" + dest + "," + from + "," + status + ")");
-	  m_window->setTypingNotifier(from, (bool) status.toInt());
+	  //m_window->setTypingNotifier(from, (bool) status.toInt());
+	  DLOG (INFO) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
+	  if (status == "1") {
+	    m_typing_label->setText("(" + from + " is typing...)");
+	  } else {
+	    m_typing_label->setText("");
+	  }
 	  break;
 	}
       default:
