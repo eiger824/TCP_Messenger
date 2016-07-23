@@ -21,12 +21,14 @@ namespace tcp_messenger {
 
   unsigned int Chat::addMessage(const QString& text, bool self, const QString& from) {
     //first check there are no pending "typing" messages
-    Message *last =
-      qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() - 1)->widget());
-    if (last->getText().contains("Typing", Qt::CaseInsensitive)) {
-      //then remove the previous
-      m_main_layout->removeWidget(last);
-      delete last;
+    if (m_main_layout->count() > 0) {
+      Message *last =
+	qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() - 1)->widget());
+      if (last->getText().contains("Typing", Qt::CaseInsensitive)) {
+	//then remove the previous
+	m_main_layout->removeWidget(last);
+	delete last;
+      }
     }
     if (m_main_layout->count() < MAX_MESSAGES - 1) {
       if (!self)
