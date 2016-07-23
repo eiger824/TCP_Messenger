@@ -12,12 +12,12 @@ namespace tcp_messenger {
   
   Client::Client(QWidget *parent)
     :   QDialog(parent),
-	networkSession(0),
+	m_network_session(0),
 	m_listening_port(LISTEN_PORT) {
     
-    hostLabel = new QLabel(tr("&Server name:"));
-    portLabel = new QLabel(tr("S&erver port:"));
-    messageLabel = new QLabel(tr("Mess&age to send:\n(CTRL + Enter to send)"));
+    m_hostname_label = new QLabel(tr("&Server name:"));
+    m_port_label = new QLabel(tr("S&erver port:"));
+    m_message_label = new QLabel(tr("Mess&age to send:\n(CTRL + Enter to send)"));
     m_username = new QLabel(tr("&Username:"));
     m_connection_status = new QLabel("Connection status:");
     m_status = new QLabel;
@@ -37,7 +37,7 @@ namespace tcp_messenger {
     connect(this, SIGNAL(currentWindowChanged(const QString&)), m_window,
 	    SLOT(currentWindowChangedSlot(const QString&)));
     
-    blockSize=0;
+    m_block_size=0;
     m_online = false;
     m_debug = false;
     
@@ -56,32 +56,32 @@ namespace tcp_messenger {
     if (ipAddress.isEmpty())
       ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
 
-    hostLineEdit = new QLineEdit(ipAddress);
-    portLineEdit = new QLineEdit();
-    messageLineEdit = new QTextEdit;
-    messageLineEdit->setEnabled(false);
-    messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
-    messageLineEdit->setFixedHeight(100);
-    messageLineEdit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    portLineEdit->setValidator(new QIntValidator(1, 65535, this));
-    usernameLineEdit = new QLineEdit("Santi");
+    m_host_lineedit = new QLineEdit(ipAddress);
+    m_port_lineedit = new QLineEdit();
+    m_message_lineedit = new QTextEdit;
+    m_message_lineedit->setEnabled(false);
+    m_message_lineedit->setStyleSheet("background-color: #C0C0C0;");
+    m_message_lineedit->setFixedHeight(100);
+    m_message_lineedit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    m_port_lineedit->setValidator(new QIntValidator(1, 65535, this));
+    m_username_lineedit = new QLineEdit("Santi");
 
-    hostLabel->setBuddy(hostLineEdit);
-    portLabel->setBuddy(portLineEdit);
-    messageLabel->setBuddy(messageLineEdit);
-    m_username->setBuddy(usernameLineEdit);
+    m_hostname_label->setBuddy(m_host_lineedit);
+    m_port_label->setBuddy(m_port_lineedit);
+    m_message_label->setBuddy(m_message_lineedit);
+    m_username->setBuddy(m_username_lineedit);
 
-    statusLabel = new QLabel(tr("Basic TCP messenger application developed by Santiago Pagola"));
+    m_status_label = new QLabel(tr("Basic TCP messenger application developed by Santiago Pagola"));
 
-    getFortuneButton = new QPushButton(tr("Connect"));
-    getFortuneButton->setDefault(true);
-    getFortuneButton->setEnabled(false);
+    m_connect_to_host = new QPushButton(tr("Connect"));
+    m_connect_to_host->setDefault(true);
+    m_connect_to_host->setEnabled(false);
 
-    quitButton = new QPushButton(tr("Disconnect"));
+    m_disconnect_from_host = new QPushButton(tr("Disconnect"));
 
-    buttonBox = new QDialogButtonBox;
-    buttonBox->addButton(getFortuneButton, QDialogButtonBox::ActionRole);
-    buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
+    m_button_box = new QDialogButtonBox;
+    m_button_box->addButton(m_connect_to_host, QDialogButtonBox::ActionRole);
+    m_button_box->addButton(m_disconnect_from_host, QDialogButtonBox::RejectRole);
 
     //investigate how to set local ports!
     m_connection_socket = new QTcpSocket(this);
@@ -91,13 +91,13 @@ namespace tcp_messenger {
     m_listen_socket = new QTcpServer(this);
     connect(m_listen_socket, SIGNAL(newConnection()), this, SLOT(newServerConnection()));
   
-    connect(hostLineEdit, SIGNAL(textChanged(QString)),
-	    this, SLOT(enableGetFortuneButton()));
-    connect(portLineEdit, SIGNAL(textChanged(QString)),
-	    this, SLOT(enableGetFortuneButton()));
-    connect(getFortuneButton, SIGNAL(clicked()),
+    connect(m_host_lineedit, SIGNAL(textChanged(QString)),
+	    this, SLOT(enableConnectButton()));
+    connect(m_port_lineedit, SIGNAL(textChanged(QString)),
+	    this, SLOT(enableConnectButton()));
+    connect(m_connect_to_host, SIGNAL(clicked()),
 	    this, SLOT(getOnline()));
-    connect(quitButton, SIGNAL(clicked()), this, SLOT(getOffline()));
+    connect(m_disconnect_from_host, SIGNAL(clicked()), this, SLOT(getOffline()));
     connect(m_transmission_socket, SIGNAL(readyRead()), this, SLOT(dataReceived()));
     connect(m_connection_socket, SIGNAL(error(QAbstractSocket::SocketError)),
 	    this, SLOT(displayError(QAbstractSocket::SocketError)));
@@ -106,8 +106,8 @@ namespace tcp_messenger {
     connect(m_connection_socket, SIGNAL(disconnected()), this,
 	    SLOT(nowOffline()));
 
-    checkbox = new QCheckBox("Enable debug messages on background", this);
-    connect(checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
+    m_checkbox = new QCheckBox("Enable debug messages on background", this);
+    connect(m_checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
 
     m_box = new QComboBox;
     m_box->addItem("Select from list...");
@@ -117,27 +117,27 @@ namespace tcp_messenger {
     connect(send, SIGNAL(clicked()), this, SLOT(sendMessage()));
   
     QGridLayout *mainLayout = new QGridLayout;
-    mainLayout->addWidget(hostLabel, 0, 0);
-    mainLayout->addWidget(hostLineEdit, 0, 1);
-    mainLayout->addWidget(portLabel, 1, 0);
-    mainLayout->addWidget(portLineEdit, 1, 1);
+    mainLayout->addWidget(m_hostname_label, 0, 0);
+    mainLayout->addWidget(m_host_lineedit, 0, 1);
+    mainLayout->addWidget(m_port_label, 1, 0);
+    mainLayout->addWidget(m_port_lineedit, 1, 1);
     mainLayout->addWidget(m_username, 2, 0);
-    mainLayout->addWidget(usernameLineEdit, 2, 1);
+    mainLayout->addWidget(m_username_lineedit, 2, 1);
     mainLayout->addWidget(m_connection_status, 3, 0);
     mainLayout->addWidget(m_status, 3, 1);
-    mainLayout->addWidget(buttonBox, 4, 0, 1, 2);
+    mainLayout->addWidget(m_button_box, 4, 0, 1, 2);
     mainLayout->addWidget(new QLabel("Select user from list:"), 5, 0);
     mainLayout->addWidget(m_box, 6, 0);
-    mainLayout->addWidget(checkbox, 6, 1);
+    mainLayout->addWidget(m_checkbox, 6, 1);
     mainLayout->addWidget(m_window, 7, 0, 1, 2, Qt::AlignCenter);
-    mainLayout->addWidget(messageLabel, 8, 0);
-    mainLayout->addWidget(messageLineEdit, 8, 1);
+    mainLayout->addWidget(m_message_label, 8, 0);
+    mainLayout->addWidget(m_message_lineedit, 8, 1);
     mainLayout->addWidget(send, 8, 2);
-    mainLayout->addWidget(statusLabel, 9, 0, 1, 2);
+    mainLayout->addWidget(m_status_label, 9, 0, 1, 2);
     setLayout(mainLayout);
 
     setWindowTitle(tr("TCP Messenger by Santiago Pagola"));
-    portLineEdit->setFocus();
+    m_port_lineedit->setFocus();
 
     QNetworkConfigurationManager manager;
     if (manager.capabilities() & QNetworkConfigurationManager::NetworkSessionRequired) {
@@ -154,25 +154,25 @@ namespace tcp_messenger {
 	config = manager.defaultConfiguration();
       }
 
-      networkSession = new QNetworkSession(config, this);
-      connect(networkSession, SIGNAL(opened()), this, SLOT(sessionOpened()));
+      m_network_session = new QNetworkSession(config, this);
+      connect(m_network_session, SIGNAL(opened()), this, SLOT(sessionOpened()));
 
-      getFortuneButton->setEnabled(false);
-      statusLabel->setText(tr("Opening network session."));
-      networkSession->open();
+      m_connect_to_host->setEnabled(false);
+      m_status_label->setText(tr("Opening network session."));
+      m_network_session->open();
     }
-    enableGetFortuneButton();
+    enableConnectButton();
     this->layout()->setSizeConstraint( QLayout::SetFixedSize );
   }
 
   void Client::getOnline()
   {
     //1)client registration on server
-    getFortuneButton->setEnabled(false);
-    blockSize = 0;
+    m_connect_to_host->setEnabled(false);
+    m_block_size = 0;
     m_connection_socket->abort();
-    m_connection_socket->connectToHost(hostLineEdit->text(),
-				       portLineEdit->text().toInt());
+    m_connection_socket->connectToHost(m_host_lineedit->text(),
+				       m_port_lineedit->text().toInt());
   }
 
   void Client::dataReceived()
@@ -181,14 +181,14 @@ namespace tcp_messenger {
     QDataStream in(m_transmission_socket);
     in.setVersion(QDataStream::Qt_4_0);
 
-    if (blockSize == 0) {
+    if (m_block_size == 0) {
       if (m_transmission_socket->bytesAvailable() < (int)sizeof(quint16))
 	return;
 
-      in >> blockSize;
+      in >> m_block_size;
     }
 
-    if (m_transmission_socket->bytesAvailable() < blockSize)
+    if (m_transmission_socket->bytesAvailable() < m_block_size)
       return;
 
     QString message;
@@ -242,9 +242,9 @@ namespace tcp_messenger {
 				  "A username matching yours was already found "
 				  "on the server on the same IP. "
 				  "Choose a different username."));
-      enableGetFortuneButton();
+      enableConnectButton();
       m_online = false;
-      blockSize = 0;
+      m_block_size = 0;
       break;
       }
       
@@ -259,7 +259,7 @@ namespace tcp_messenger {
     }
   
     //reset blocksize
-    blockSize=0;
+    m_block_size=0;
 
     //disconnect from host
     m_transmission_socket->disconnectFromHost();
@@ -289,24 +289,24 @@ namespace tcp_messenger {
 			       .arg(m_connection_socket->errorString()));
     }
 
-    getFortuneButton->setEnabled(true);
+    m_connect_to_host->setEnabled(true);
   }
 
-  void Client::enableGetFortuneButton()
+  void Client::enableConnectButton()
   {
-    getFortuneButton->setEnabled((!networkSession || networkSession->isOpen()) &&
-				 !hostLineEdit->text().isEmpty() &&
-				 !portLineEdit->text().isEmpty());
+    m_connect_to_host->setEnabled((!m_network_session || m_network_session->isOpen()) &&
+				 !m_host_lineedit->text().isEmpty() &&
+				 !m_port_lineedit->text().isEmpty());
 
   }
 
   void Client::sessionOpened()
   {
     // Save the used configuration
-    QNetworkConfiguration config = networkSession->configuration();
+    QNetworkConfiguration config = m_network_session->configuration();
     QString id;
     if (config.type() == QNetworkConfiguration::UserChoice)
-      id = networkSession->sessionProperty(QLatin1String("UserChoiceConfiguration")).toString();
+      id = m_network_session->sessionProperty(QLatin1String("UserChoiceConfiguration")).toString();
     else
       id = config.identifier();
 
@@ -315,36 +315,36 @@ namespace tcp_messenger {
     settings.setValue(QLatin1String("DefaultNetworkConfiguration"), id);
     settings.endGroup();
 
-    statusLabel->setText(tr("Basic TCP messenger application developed by Santiago Pagola"));
+    m_status_label->setText(tr("Basic TCP messenger application developed by Santiago Pagola"));
 
-    enableGetFortuneButton();
+    enableConnectButton();
   }
 
   void Client::keyPressEvent(QKeyEvent *event) { 
     if (event->key() == ENTER  &&
-	messageLineEdit->hasFocus()) {
+	m_message_lineedit->hasFocus()) {
       sendMessage();
     }
   }
 
   void Client::sendMessage() {
     debugInfo("Message slot called");
-    if (!messageLineEdit->toPlainText().isEmpty() &&
-	messageLineEdit->isEnabled()) {
-      QString message = messageLineEdit->toPlainText();
+    if (!m_message_lineedit->toPlainText().isEmpty() &&
+	m_message_lineedit->isEnabled()) {
+      QString message = m_message_lineedit->toPlainText();
       QString dest_user = m_box->currentText();
       unsigned int message_id =
 	m_window->newMessageFromUser("Me:" + message, true, dest_user);
       
-      messageLineEdit->clear();
+      m_message_lineedit->clear();
       //Fill parameters to send
       QStringList params;
-      params << message << dest_user << usernameLineEdit->text() << QString::number(message_id);
+      params << message << dest_user << m_username_lineedit->text() << QString::number(message_id);
       //and send it to the server
-      blockSize = 0;
+      m_block_size = 0;
       m_transmission_socket->abort();
-      m_transmission_socket->connectToHost(hostLineEdit->text(),
-					   portLineEdit->text().toInt());
+      m_transmission_socket->connectToHost(m_host_lineedit->text(),
+					   m_port_lineedit->text().toInt());
       QString string_stream =
 	m_protocol->constructStream_UE(params,
 				       ProtocolStreamType_UE::UE_MESSAGE);
@@ -365,7 +365,7 @@ namespace tcp_messenger {
     //start listening server
     unsigned cnt = 0;
     debugInfo("Attempting connection on port: " + QString::number(m_listening_port));
-    while (!m_listen_socket->listen(QHostAddress(hostLineEdit->text()), m_listening_port)) {
+    while (!m_listen_socket->listen(QHostAddress(m_host_lineedit->text()), m_listening_port)) {
       if (m_listening_port <= 65535 && cnt < 10) {
 	m_listening_port += 2;
 	++cnt;
@@ -374,7 +374,7 @@ namespace tcp_messenger {
     }
     if (m_listening_port < 65536) {
       debugInfo("Success: client will listen to server @ " +
-		hostLineEdit->text() + ":" + QString::number(m_listening_port));
+		m_host_lineedit->text() + ":" + QString::number(m_listening_port));
       
     } else {
       LOG (ERROR) << "No available ports were found. Closing client...";
@@ -383,16 +383,16 @@ namespace tcp_messenger {
     }
     
     DLOG (INFO) << "Successfully connected to server. Sending user info";
-    blockSize = 0;
+    m_block_size = 0;
     m_transmission_socket->abort();
-    m_transmission_socket->connectToHost(hostLineEdit->text(),
-					 portLineEdit->text().toInt());
+    m_transmission_socket->connectToHost(m_host_lineedit->text(),
+					 m_port_lineedit->text().toInt());
     QByteArray block;
     QDataStream out(&block, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_4_0);
     out << (quint16)0;
     QStringList params;
-    params << usernameLineEdit->text() << QString::number(m_listening_port);
+    params << m_username_lineedit->text() << QString::number(m_listening_port);
     out << m_protocol->constructStream_UE(params,
 					  ProtocolStreamType_UE::UE_REGISTER);
     out.device()->seek(0);
@@ -409,8 +409,8 @@ namespace tcp_messenger {
     DLOG (INFO) << "Successfully disconnected from server.";
     m_online = false;
     //and disable message field in case server shuts down
-    messageLineEdit->setEnabled(false);
-    messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
+    m_message_lineedit->setEnabled(false);
+    m_message_lineedit->setStyleSheet("background-color: #C0C0C0;");
 
     debugInfo("Removing my name from list");
     //and remove my name from list
@@ -421,10 +421,10 @@ namespace tcp_messenger {
     if (m_online) {
       //notify server
       DLOG (INFO) << "About to go offline";
-      blockSize = 0;
+      m_block_size = 0;
       m_transmission_socket->abort();
-      m_transmission_socket->connectToHost(hostLineEdit->text(),
-					   portLineEdit->text().toInt());
+      m_transmission_socket->connectToHost(m_host_lineedit->text(),
+					   m_port_lineedit->text().toInt());
       QByteArray block;
       QDataStream out(&block, QIODevice::WriteOnly);
       out.setVersion(QDataStream::Qt_4_0);
@@ -438,10 +438,10 @@ namespace tcp_messenger {
 
       //and close connection socket
       m_connection_socket->disconnectFromHost();
-      enableGetFortuneButton();
+      enableConnectButton();
       //and disable message field
-      messageLineEdit->setEnabled(false);
-      messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
+      m_message_lineedit->setEnabled(false);
+      m_message_lineedit->setStyleSheet("background-color: #C0C0C0;");
       //set icon
       QPixmap image;
       if (image.load("images/offline.png")) {
@@ -459,17 +459,17 @@ namespace tcp_messenger {
 		       std::string port) {
     m_debug = debug_mode;
     if (m_debug) {
-      checkbox->toggle();
+      m_checkbox->toggle();
     }
     else
       DLOG (INFO) << "Debug mode is disabled";
 
     if (!QString::fromStdString(username).isEmpty())
-      usernameLineEdit->setText(QString::fromStdString(username));
+      m_username_lineedit->setText(QString::fromStdString(username));
     if (!QString::fromStdString(ip).isEmpty())
-      hostLineEdit->setText(QString::fromStdString(ip));
+      m_host_lineedit->setText(QString::fromStdString(ip));
     if (!QString::fromStdString(port).isEmpty())
-      portLineEdit->setText(QString::fromStdString(port));
+      m_port_lineedit->setText(QString::fromStdString(port));
   }
 
   void Client::debugInfo(const QString& info) {
@@ -488,19 +488,19 @@ namespace tcp_messenger {
 
   void Client::enableServerFields(bool enabled) {
     if (!enabled) { 
-      hostLineEdit->setStyleSheet("background-color: #E0E0E0;");
-      hostLineEdit->setEnabled(false);
-      portLineEdit->setStyleSheet("background-color: #E0E0E0;");
-      portLineEdit->setEnabled(false);
-      usernameLineEdit->setStyleSheet("background-color: #E0E0E0;");
-      usernameLineEdit->setEnabled(false);
+      m_host_lineedit->setStyleSheet("background-color: #E0E0E0;");
+      m_host_lineedit->setEnabled(false);
+      m_port_lineedit->setStyleSheet("background-color: #E0E0E0;");
+      m_port_lineedit->setEnabled(false);
+      m_username_lineedit->setStyleSheet("background-color: #E0E0E0;");
+      m_username_lineedit->setEnabled(false);
     } else {
-      hostLineEdit->setStyleSheet("background-color: #FFFFFF;");
-      hostLineEdit->setEnabled(true);
-      portLineEdit->setStyleSheet("background-color: #FFFFFF;");
-      portLineEdit->setEnabled(true);
-      usernameLineEdit->setStyleSheet("background-color: #FFFFFF;");
-      usernameLineEdit->setEnabled(true);
+      m_host_lineedit->setStyleSheet("background-color: #FFFFFF;");
+      m_host_lineedit->setEnabled(true);
+      m_port_lineedit->setStyleSheet("background-color: #FFFFFF;");
+      m_port_lineedit->setEnabled(true);
+      m_username_lineedit->setStyleSheet("background-color: #FFFFFF;");
+      m_username_lineedit->setEnabled(true);
     }
   }
 
@@ -513,12 +513,12 @@ namespace tcp_messenger {
     }
     if (index == 0) {
       //disable message field
-      messageLineEdit->setEnabled(false);
-      messageLineEdit->setStyleSheet("background-color: #C0C0C0;");
+      m_message_lineedit->setEnabled(false);
+      m_message_lineedit->setStyleSheet("background-color: #C0C0C0;");
     } else {
       //disable message field
-      messageLineEdit->setEnabled(true);
-      messageLineEdit->setStyleSheet("background-color: #FFFFFF;");
+      m_message_lineedit->setEnabled(true);
+      m_message_lineedit->setStyleSheet("background-color: #FFFFFF;");
     }
   }
 
@@ -532,16 +532,16 @@ namespace tcp_messenger {
       //parse data
       QDataStream in(socket);
       in.setVersion(QDataStream::Qt_4_0);
-      debugInfo("blocksize: " + QString::number(blockSize));
+      debugInfo("blocksize: " + QString::number(m_block_size));
       debugInfo("bytes available in client socket: " + QString::number(socket->bytesAvailable()));
-      if (blockSize == 0) {
+      if (m_block_size == 0) {
 	if (socket->bytesAvailable() < (int)sizeof(quint16))
 	  return;
       
-	in >> blockSize;
+	in >> m_block_size;
       }
         
-      if (socket->bytesAvailable() < blockSize)
+      if (socket->bytesAvailable() < m_block_size)
 	return;
     
       QString message;
@@ -596,9 +596,9 @@ namespace tcp_messenger {
 				      "A username matching yours was already found "
 				      "on the server on the same IP. "
 				      "Choose a different username."));
-	  enableGetFortuneButton();
+	  enableConnectButton();
 	  m_online = false;
-	  blockSize = 0;
+	  m_block_size = 0;
 	  break;
 	}
       case SERVER_FWD_TO_DEST:
@@ -609,7 +609,7 @@ namespace tcp_messenger {
 	  //extra check
 	  debugInfo("@@@ ack received, FROM: " + from + ", TO: " + dest + ", to MESSAGE ID: " +
 		    QString::number(message_id));
-	  if (dest == usernameLineEdit->text()) {
+	  if (dest == m_username_lineedit->text()) {
 	    m_window->setMessageStatus(message_id, 2);
 	    debugInfo("Message was successfully sent & seen!");
 	  }
@@ -622,19 +622,19 @@ namespace tcp_messenger {
 	    m_window->newMessageFromUser(params.at(0), false, params.at(2));
 	  
 	  debugInfo("Now sending ACK to user " + params.at(2) + ", to message ID: " + QString::number(message_id));
-	  blockSize = 0;
+	  m_block_size = 0;
 	  m_transmission_socket->abort();
-	  m_transmission_socket->connectToHost(hostLineEdit->text(),
-					       portLineEdit->text().toInt());
+	  m_transmission_socket->connectToHost(m_host_lineedit->text(),
+					       m_port_lineedit->text().toInt());
 	  QByteArray block;
 	  QDataStream out(&block, QIODevice::WriteOnly);
 	  out.setVersion(QDataStream::Qt_4_0);
 	  out << (quint16)0;
 	  QStringList ack_params;
-	  ack_params << params.at(2) << usernameLineEdit->text() << QString::number(message_id);
+	  ack_params << params.at(2) << m_username_lineedit->text() << QString::number(message_id);
 	  debugInfo("ABOUT TO SEND ACK: PARAMETERS(" +
 		    params.at(2) + "," +
-		    usernameLineEdit->text() + "," +
+		    m_username_lineedit->text() + "," +
 		    QString::number(message_id) + ")");
 	  out << m_protocol->constructStream_UE(ack_params,
 						ProtocolStreamType_UE::UE_ACK);
@@ -652,7 +652,7 @@ namespace tcp_messenger {
 	}
       }
     }
-    blockSize=0;
+    m_block_size=0;
   }
   
 }
