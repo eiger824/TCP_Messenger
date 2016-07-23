@@ -348,7 +348,6 @@ namespace tcp_messenger {
       QString string_stream =
 	m_protocol->constructStream_UE(params,
 				       ProtocolStreamType_UE::UE_MESSAGE);
-      
       QByteArray block;
       QDataStream out(&block, QIODevice::WriteOnly);
       out.setVersion(QDataStream::Qt_4_0);
@@ -614,6 +613,7 @@ namespace tcp_messenger {
 	    m_window->setMessageStatus(message_id, 2);
 	    debugInfo("Message was successfully sent & seen!");
 	  }
+	  break;
 	}
       default:
 	{
@@ -632,6 +632,10 @@ namespace tcp_messenger {
 	  out << (quint16)0;
 	  QStringList ack_params;
 	  ack_params << params.at(2) << usernameLineEdit->text() << QString::number(message_id);
+	  debugInfo("ABOUT TO SEND ACK: PARAMETERS(" +
+		    params.at(2) + "," +
+		    usernameLineEdit->text() + "," +
+		    QString::number(message_id) + ")");
 	  out << m_protocol->constructStream_UE(ack_params,
 						ProtocolStreamType_UE::UE_ACK);
 	  out.device()->seek(0);

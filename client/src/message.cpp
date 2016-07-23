@@ -79,6 +79,8 @@ namespace tcp_messenger {
     m_message_id = rand() % 1000 + 1;
     
     setLayout(m_main_layout);
+
+    changeSize(text.size() / 45 + 1);
     
     show();
   }
@@ -86,6 +88,7 @@ namespace tcp_messenger {
   Message::~Message() {}
 
   void Message::changeSize(int nr) {
+    DLOG (INFO) << "Resizing message box";
     resize(this->width(), this->width() * nr);
     repaint();
   }
@@ -106,6 +109,7 @@ namespace tcp_messenger {
 
   void Message::newMessage(const QString& text) {
     m_text_label->setText(text);
+    changeSize(text.size() / 45 + 1);
     if (m_self)
       m_ack_timer->start(10 * 1000);
   }

@@ -170,6 +170,7 @@ namespace tcp_messenger {
 	  quint16 temp_port = (quint16) params.at(1).toInt();
 	  DLOG (INFO) << "Parsed port: " << temp_port;
 	  if (temp_name.isEmpty()) {
+	    blockSize=0;
 	    return;
 	  }
 	  UE temp;
@@ -282,6 +283,7 @@ namespace tcp_messenger {
 	}
       case UE_ACK:
 	{
+	  logLabel->setText(logLabel->toPlainText() + "\n" + message);
 	  debugInfo("Going to forward user ack to destination");
 	  QByteArray block;
 	  QDataStream out(&block, QIODevice::WriteOnly);
@@ -308,6 +310,7 @@ namespace tcp_messenger {
 	    debugInfo("Going to forward ack to " + dest_ip + ":" + QString::number(dest_port));
 	  } else {
 	    LOG (ERROR) << "ERROR: name was not found on server. Returning...";
+	    blockSize=0;
 	    return;
 	  }
 	  dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
@@ -373,6 +376,7 @@ namespace tcp_messenger {
 	      debugInfo("Going to forward message to " + dest_ip + ":" + QString::number(dest_port));
 	    } else {
 	      LOG (ERROR) << "ERROR: name was not found on server. Returning...";
+	      blockSize=0;
 	      return;
 	    }
 	    dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
