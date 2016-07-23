@@ -67,16 +67,5 @@ namespace tcp_messenger {
     }
     return -1;
   }
-
-  void Chat::setTypingNotifier(bool status) {
-    //create new message widget and just edit texts
-    if (status) {
-      m_main_layout->addWidget(new Message("Typing...", false));
-    } else {
-      Message *last = qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() - 1)->widget());
-      m_main_layout->removeWidget(last);
-      delete last;
-    }
-  } 
-  
+ 
 }

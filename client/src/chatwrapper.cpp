@@ -63,18 +63,4 @@ namespace tcp_messenger {
     return -1;
   }
   
-  void ChatWrapper::setTypingNotifier(const QString& from, bool status) {
-    if (status)
-      DLOG (INFO) << from.toStdString() << " is now typing...";
-    else
-      DLOG (INFO) << from.toStdString() << " stopped typing";
-    
-    int index = getIndexOfUser(from);
-    if (index != -1) {
-      qobject_cast<Chat*>(m_conver_stack->widget(index))->setTypingNotifier(status);
-    } else {
-      LOG (ERROR) << "Error: user " << from.toStdString() << " was not found.";
-    }
-  }
-  
 }

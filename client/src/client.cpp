@@ -635,8 +635,6 @@ namespace tcp_messenger {
 	  QString from = params.at(1);
 	  QString status = params.at(2);
 	  debugInfo("(" + dest + "," + from + "," + status + ")");
-	  //m_window->setTypingNotifier(from, (bool) status.toInt());
-	  DLOG (INFO) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
 	  if (status == "1") {
 	    m_typing_label->setText("(" + from + " is typing...)");
 	  } else {
