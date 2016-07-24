@@ -32,7 +32,7 @@ namespace tcp_messenger {
     m_typing_label = new QLabel();
     
     //chat window
-    m_window = new ChatWrapper();
+    m_window = new ChatContainer();
     m_window->setFixedSize(560,380);
     
     connect(this, SIGNAL(currentWindowChanged(const QString&)), m_window,
@@ -368,6 +368,9 @@ namespace tcp_messenger {
       if (m_typing_timer->isActive()) {
 	m_typing_timer->stop();
       }
+      //typing label
+      m_typing_label->setText("");
+      m_typing_hold = false;
     }
   }
 
@@ -647,7 +650,7 @@ namespace tcp_messenger {
 	  debugInfo("New message was received");
 	  unsigned int message_id =
 	    m_window->newMessageFromUser(params.at(0), false, params.at(2));
-	  
+	  m_typing_label->setText("");
 	  debugInfo("Now sending ACK to user " + params.at(2) + ", to message ID: " + QString::number(message_id));
 	  m_block_size = 0;
 	  m_transmission_socket->abort();

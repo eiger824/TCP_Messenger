@@ -18,7 +18,7 @@ include_directories(
 
 set(HEADERS_MOC
   include/client.hpp
-  include/chatwrapper.hpp
+  include/chatcontainer.hpp
   include/chat.hpp
   include/message.hpp
   )
@@ -26,7 +26,7 @@ qt4_wrap_cpp(MOC_HEADERS ${HEADERS_MOC})
 
 set(SOURCES
   src/client.cpp
-  src/chatwrapper.cpp
+  src/chatcontainer.cpp
   src/chat.cpp
   src/message.cpp
   )

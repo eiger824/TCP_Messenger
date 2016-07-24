@@ -10,11 +10,11 @@
 
 namespace tcp_messenger {
   
-  class ChatWrapper: public QWidget {
+  class ChatContainer: public QWidget {
     Q_OBJECT
   public:
-    ChatWrapper(QWidget *parent=0);
-    ~ChatWrapper();
+    ChatContainer(QWidget *parent=0);
+    ~ChatContainer();
     bool addUser(const QString& from);
     unsigned int newMessageFromUser(const QString& message, bool self, const QString& from);
     void setMessageStatus(const QString& from, unsigned int message_id, int status);

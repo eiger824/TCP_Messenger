@@ -7,7 +7,7 @@
 #include <QMap>
 #include <string>
 
-#include "chatwrapper.hpp"
+#include "chatcontainer.hpp"
 #include "protocol.hpp"
 
 class QDialogButtonBox;
@@ -81,7 +81,7 @@ namespace tcp_messenger {
     bool m_debug;
     QNetworkSession *m_network_session;
     QComboBox *m_box;
-    ChatWrapper *m_window;
+    ChatContainer *m_window;
     Protocol *m_protocol;
     quint16 m_listening_port;
     QTimer *m_typing_timer;

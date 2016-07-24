@@ -4,10 +4,10 @@
 namespace tcp_messenger {
   
   Message::Message(QWidget* parent) : m_self(false) {
-    setFixedSize(530, 38);
+    setFixedSize(500, 38);
 
     setObjectName("Message");
-    setObjectName("#Message {background-color: white;}");
+    setObjectName("#Message {border-bottom: 2px solid black; background-color: white;}");
     
     m_main_layout = new QHBoxLayout;
     
@@ -41,7 +41,7 @@ namespace tcp_messenger {
   }
   
   Message::Message(const QString& text, bool self, QWidget* parent) {
-    setFixedSize(530, 38);
+    setFixedSize(500, 38);
         
     m_main_layout = new QHBoxLayout;
 
@@ -105,6 +105,7 @@ namespace tcp_messenger {
       m_text_label->show();
       m_text_label->setAlignment(Qt::AlignTop | Qt::AlignRight);
     }
+    DLOG (INFO) << "From self set: " << self;
   }
 
   void Message::newMessage(const QString& text) {
@@ -112,6 +113,7 @@ namespace tcp_messenger {
     changeSize(text.size() / 45 + 1);
     if (m_self)
       m_ack_timer->start(10 * 1000);
+    DLOG (INFO) << "New message set: " << text.toStdString();
   }
 
   void Message::timerTimedOut() {
@@ -135,10 +137,10 @@ namespace tcp_messenger {
   QString Message::getText() {
     return m_text_label->text();
   }
-  
-  void Message::statusChangedSlot(STATUS status) {
+
+  void Message::setStatusIcons() {
     QPixmap image;
-    switch (status) {
+    switch (m_status) {
     case SENDING:
       if (image.load("images/clock.png"))
 	m_status_label->setPixmap(image);
@@ -166,6 +168,11 @@ namespace tcp_messenger {
       break;
     }
   }
+  
+  void Message::statusChangedSlot(STATUS status) {
+    setStatusIcons();
+    DLOG (INFO) << "Status updated to " << status;
+  }
 
   void Message::setSender(bool self) {
     fromMe(self);
@@ -188,9 +195,20 @@ namespace tcp_messenger {
     }
   }
 
+  bool Message::getSelf() {
+    return m_self;
+  }
+
+  STATUS Message::getStatus() {
+    return m_status;
+  }
+  
   void Message::operator=(Message const& next_message) {
-    newMessage(next_message.m_text_label->text());
-    setMessageStatus(next_message.m_status);
+    m_text_label->setText(next_message.m_text_label->text());
+    m_message_id = next_message.m_message_id;
+    m_status = next_message.m_status;
+    //statusChangedSlot(next_message.m_status);
     fromMe(next_message.m_self);
+    setStatusIcons();
   }
 }
