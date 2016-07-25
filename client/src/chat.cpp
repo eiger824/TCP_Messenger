@@ -3,16 +3,21 @@
 #include "message.hpp"
 #include "chat.hpp"
 
+#include "bits.hpp"
+#include <cstdint>
+#include <iostream>
+
 namespace tcp_messenger {
 
   static const int MAX_MESSAGES = 6;
+  static const uint8_t MASK = 89;
   
   Chat::Chat(const QString& name, QWidget *parent) : m_name(name){
     setStyleSheet("background-color: white;");
     setFixedSize(600,340);
     m_side_bar = new QScrollBar;
     m_side_bar->setMinimum(0);
-    m_side_bar->setMaximum(MAX_MESSAGES - 1);
+    m_side_bar->setMaximum(0);
     m_side_bar->setSliderPosition(m_side_bar->maximum());
     m_side_bar->hide();
     connect(m_side_bar, SIGNAL(sliderMoved(int)), this, SLOT(sliderMovedSlot(int)));
@@ -56,6 +61,9 @@ namespace tcp_messenger {
       last->newMessage(text);
       last->setSender(self);
       last->setMessageID(id);
+
+      m_side_bar->setMaximum(m_side_bar->maximum() + 1);
+      m_side_bar->setSliderPosition(m_side_bar->maximum());
     }
     unsigned int message_id =
       qobject_cast<Message*>(m_main_layout->itemAt(m_main_layout->count() -1 )->widget())->getMessageID();
@@ -67,8 +75,7 @@ namespace tcp_messenger {
     newmessage.id = message_id;
     m_message_buffer.append(newmessage);
     DLOG (INFO) << "Nr. message on buffer: " << m_message_buffer.size();
-    m_side_bar->setMaximum(m_message_buffer.size());
-    m_side_bar->setSliderPosition(m_side_bar->maximum());
+    
     m_side_bar->show();
     return message_id;
   }
@@ -110,10 +117,10 @@ namespace tcp_messenger {
 
   void Chat::sliderMovedSlot(int value) {
     DLOG (INFO) << "New position: " << value;
-    if (value < MAX_MESSAGES)
-      return;
+    //if (value < MAX_MESSAGES)
+    //return;
     unsigned int k =0;
-    for (unsigned int i = value - 6; i < value; ++i) {
+    for (unsigned int i = value; i < MAX_MESSAGES + value; ++i) {
       Message *current =
 	qobject_cast<Message*>(m_main_layout->itemAt(k)->widget());
       MessageData buffer_item = m_message_buffer.at(i);

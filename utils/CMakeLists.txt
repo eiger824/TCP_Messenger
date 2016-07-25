@@ -17,11 +17,13 @@ include_directories(
 set(UTILS_HEADERS_MOC
   include/definitions.hpp
   include/protocol.hpp
+  include/bits.hpp
   )
 qt4_wrap_cpp(MOC_UTIL_HEADERS ${UTILS_HEADERS_MOC})
 
 set(UTIL_SOURCES
   src/protocol.cpp
+  src/bits.cpp
   )
 add_library(Utils
   ${MOC_UTILS_HEADERS}
