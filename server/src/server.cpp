@@ -10,28 +10,28 @@
 namespace tcp_messenger {
 
   Server::Server(QWidget *parent)
-    :   QDialog(parent), networkSession(0)
+    :   QDialog(parent), m_network_session(0)
   {
-    statusLabel = new QLabel;
-    quitButton = new QPushButton(tr("Quit"));
-    quitButton->setAutoDefault(false);
+    m_status_label = new QLabel;
+    m_quit_button = new QPushButton(tr("Quit"));
+    m_quit_button->setAutoDefault(false);
 
     //protocol
     m_protocol = new Protocol(PROTOCOL_VERSION);
     
-    blockSize = 0;
+    m_block_size = 0;
   
-    logLabel = new QTextEdit;
-    logLabel->setReadOnly(true);
-    logLabel->setStyleSheet("border: 2px solid black; color: black; background-color: white;");
-    logLabel->setFixedSize(500,300);
-    logLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    m_log_label = new QTextEdit;
+    m_log_label->setReadOnly(true);
+    m_log_label->setStyleSheet("border: 2px solid black; color: black; background-color: white;");
+    m_log_label->setFixedSize(500,300);
+    m_log_label->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
-    onlineUsers = new QTextEdit;
-    onlineUsers->setReadOnly(true);
-    onlineUsers->setStyleSheet("border: 2px solid black; color: black; background-color: white;");
-    onlineUsers->setFixedSize(300,100);
-    onlineUsers->setAlignment(Qt::AlignBottom | Qt::AlignLeft);
+    m_online_users_label = new QTextEdit;
+    m_online_users_label->setReadOnly(true);
+    m_online_users_label->setStyleSheet("border: 2px solid black; color: black; background-color: white;");
+    m_online_users_label->setFixedSize(300,100);
+    m_online_users_label->setAlignment(Qt::AlignBottom | Qt::AlignLeft);
   
     QNetworkConfigurationManager manager;
     if (manager.capabilities() & QNetworkConfigurationManager::NetworkSessionRequired) {
@@ -48,44 +48,44 @@ namespace tcp_messenger {
 	config = manager.defaultConfiguration();
       }
 
-      networkSession = new QNetworkSession(config, this);
-      connect(networkSession, SIGNAL(opened()), this, SLOT(sessionOpened()));
+      m_network_session = new QNetworkSession(config, this);
+      connect(m_network_session, SIGNAL(opened()), this, SLOT(sessionOpened()));
 
-      statusLabel->setText(tr("Opening network session."));
-      networkSession->open();
+      m_status_label->setText(tr("Opening network session."));
+      m_network_session->open();
     } else {
       sessionOpened();
     }
 
     //object connections
-    connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
-    connect(tcpServer, SIGNAL(newConnection()), this, SLOT(acceptUser()));
+    connect(m_quit_button, SIGNAL(clicked()), this, SLOT(close()));
+    connect(m_tcp_server, SIGNAL(newConnection()), this, SLOT(acceptUser()));
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     buttonLayout->addStretch(1);
-    buttonLayout->addWidget(quitButton);
+    buttonLayout->addWidget(m_quit_button);
     buttonLayout->addStretch(1);
 
-    mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(statusLabel);
-    mainLayout->addWidget(logLabel);
-    mainLayout->addWidget(new QLabel("Currently online users:"));
-    mainLayout->addWidget(onlineUsers);
-    mainLayout->addLayout(buttonLayout);
-    setLayout(mainLayout);
+    m_main_layout = new QVBoxLayout;
+    m_main_layout->addWidget(m_status_label);
+    m_main_layout->addWidget(m_log_label);
+    m_main_layout->addWidget(new QLabel("Currently online users:"));
+    m_main_layout->addWidget(m_online_users_label);
+    m_main_layout->addLayout(buttonLayout);
+    setLayout(m_main_layout);
 
-    setWindowTitle(tr("Fortune Server"));
+    setWindowTitle(tr("Messenger Server"));
     this->layout()->setSizeConstraint( QLayout::SetFixedSize );
   }
 
   void Server::sessionOpened()
   {
     // Save the used configuration
-    if (networkSession) {
-      QNetworkConfiguration config = networkSession->configuration();
+    if (m_network_session) {
+      QNetworkConfiguration config = m_network_session->configuration();
       QString id;
       if (config.type() == QNetworkConfiguration::UserChoice)
-	id = networkSession->sessionProperty(QLatin1String("UserChoiceConfiguration")).toString();
+	id = m_network_session->sessionProperty(QLatin1String("UserChoiceConfiguration")).toString();
       else
 	id = config.identifier();
 
@@ -95,11 +95,11 @@ namespace tcp_messenger {
       settings.endGroup();
     }
 
-    tcpServer = new QTcpServer(this);
-    if (!tcpServer->listen(QHostAddress::Any, 3422)) {
-      QMessageBox::critical(this, tr("Fortune Server"),
+    m_tcp_server = new QTcpServer(this);
+    if (!m_tcp_server->listen(QHostAddress::Any, 3422)) {
+      QMessageBox::critical(this, tr("Messenger Server"),
 			    tr("Unable to start the server: %1.")
-			    .arg(tcpServer->errorString()));
+			    .arg(m_tcp_server->errorString()));
       close();
       return;
     }
@@ -116,14 +116,14 @@ namespace tcp_messenger {
     // if we did not find one, use IPv4 localhost
     if (ipAddress.isEmpty())
       ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
-    statusLabel->setText(tr("The server is running on\n\nIP: %1\nport: %2\n\n"
-			    "Run the Fortune Client example now.")
-			 .arg(ipAddress).arg(tcpServer->serverPort()));
+    m_status_label->setText(tr("The server is running on\n\nIP: %1\nport: %2\n\n"
+			    "Waiting for clients to connect...")
+			 .arg(ipAddress).arg(m_tcp_server->serverPort()));
   }
 
   void Server::acceptUser() {
     //to be called every time a new connection is received
-    QTcpSocket *socket = tcpServer->nextPendingConnection();
+    QTcpSocket *socket = m_tcp_server->nextPendingConnection();
     debugInfo("New incoming connection, from IP " +
 	      socket->peerAddress().toString() +
 	      " and port: " + QString::number(socket->peerPort()));
@@ -143,16 +143,16 @@ namespace tcp_messenger {
       //parse data
       QDataStream in(socket);
       in.setVersion(QDataStream::Qt_4_0);
-      debugInfo("blocksize: " + QString::number(blockSize));
-      if (blockSize == 0) {
+      debugInfo("m_block_size: " + QString::number(m_block_size));
+      if (m_block_size == 0) {
 	if (socket->bytesAvailable() < (int)sizeof(quint16))
 	  return;
       
-	in >> blockSize;
+	in >> m_block_size;
       }
       debugInfo("bytes available in socket: " + QString::number(socket->bytesAvailable()));
     
-      if (socket->bytesAvailable() < blockSize)
+      if (socket->bytesAvailable() < m_block_size)
 	return;
     
       QString message;
@@ -170,7 +170,7 @@ namespace tcp_messenger {
 	  quint16 temp_port = (quint16) params.at(1).toInt();
 	  DLOG (INFO) << "Parsed port: " << temp_port;
 	  if (temp_name.isEmpty()) {
-	    blockSize=0;
+	    m_block_size=0;
 	    return;
 	  }
 	  UE temp;
@@ -206,22 +206,22 @@ namespace tcp_messenger {
 	    out.device()->seek(0);
 	    out << (quint16)(block.size() - sizeof(quint16));
 	    DLOG (INFO) <<"Sending error message to UE ...\n";
-	    logLabel->setText(logLabel->toPlainText()
+	    m_log_label->setText(m_log_label->toPlainText()
 			      + "\nError: attempted connection with same "
 			      "username from same IP. Sending error to client...");
 	    socket->write(block);
-	    //reset blocksize
-	    blockSize = 0;
+	    //reset m_block_size
+	    m_block_size = 0;
 	    return;
 	  }
 	  DLOG (INFO) << "New user is online: " << temp;
 	  debugInfo("Nr. online users: " + QString::number(m_online_users.size()));
-	  if (logLabel->toPlainText() != "") {
-	    logLabel->setText(logLabel->toPlainText() + "\n[" + temp.name + "]@" +
+	  if (m_log_label->toPlainText() != "") {
+	    m_log_label->setText(m_log_label->toPlainText() + "\n[" + temp.name + "]@" +
 			      temp.ip + ":" +
 			      QString::number(temp.rx_port) + " is now online.");
 	  } else {
-	    logLabel->setText(logLabel->toPlainText() + "[" + temp.name + "]@" +
+	    m_log_label->setText(m_log_label->toPlainText() + "[" + temp.name + "]@" +
 			      temp.ip + ":" +
 			      QString::number(temp.rx_port) + " is now online.");
 	  }
@@ -231,8 +231,8 @@ namespace tcp_messenger {
 	    users += user.name + "\n";
 	  }
 	  users.chop(1);
-	  onlineUsers->setText(users);
-	  qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
+	  m_online_users_label->setText(users);
+	  qobject_cast<QLabel*>(m_main_layout->itemAt(2)->widget())->setText("Currently online users("
 									  + QString::number(m_online_users.size()) + "):");
 	  //inform user of currently online users
 	  QByteArray block;
@@ -283,7 +283,7 @@ namespace tcp_messenger {
 	}
       case UE_ACK:
 	{
-	  logLabel->setText(logLabel->toPlainText() + "\n" + message);
+	  m_log_label->setText(m_log_label->toPlainText() + "\n" + message);
 	  debugInfo("Going to forward user ack to destination");
 	  QByteArray block;
 	  QDataStream out(&block, QIODevice::WriteOnly);
@@ -310,7 +310,7 @@ namespace tcp_messenger {
 	    debugInfo("Going to forward ack to " + dest_ip + ":" + QString::number(dest_port));
 	  } else {
 	    LOG (ERROR) << "ERROR: name was not found on server. Returning...";
-	    blockSize=0;
+	    m_block_size=0;
 	    return;
 	  }
 	  dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
@@ -332,12 +332,12 @@ namespace tcp_messenger {
       case UE_ERROR:
 	{
 	  debugInfo("Some error encountered by user. Returning ...");
-	  blockSize=0;
+	  m_block_size=0;
 	  return;
 	}
       case UE_MESSAGE:
 	{
-	  logLabel->setText(logLabel->toPlainText() + "\n" + message);
+	  m_log_label->setText(m_log_label->toPlainText() + "\n" + message);
 	  //and send it back to the user
 	  debugInfo("Going to resend message to dest client: [" + message + "]");
 	  
@@ -376,7 +376,7 @@ namespace tcp_messenger {
 	      debugInfo("Going to forward message to " + dest_ip + ":" + QString::number(dest_port));
 	    } else {
 	      LOG (ERROR) << "ERROR: name was not found on server. Returning...";
-	      blockSize=0;
+	      m_block_size=0;
 	      return;
 	    }
 	    dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
@@ -420,7 +420,7 @@ namespace tcp_messenger {
       case UE_TYPING:
 	{
 	  debugInfo("User is typing...");
-	  logLabel->setText(logLabel->toPlainText() + "\n" + message);
+	  m_log_label->setText(m_log_label->toPlainText() + "\n" + message);
 	  //no need to parse parameters, going to forward to user
 	  
 	  QString dest = params.at(0);
@@ -452,7 +452,7 @@ namespace tcp_messenger {
 		      dest_ip + ":" + QString::number(dest_port));
 	  } else {
 	    LOG (ERROR) << "ERROR: name was not found on server. Returning...";
-	    blockSize=0;
+	    m_block_size=0;
 	    return;
 	  }
 	  dest_socket->connectToHost(QHostAddress(dest_ip), dest_port);
@@ -477,21 +477,21 @@ namespace tcp_messenger {
       }
     
     }
-    //reset blocksize
-    blockSize=0;
+    //reset m_block_size
+    m_block_size=0;
   }
 
   void Server::unregisterUser() {
     DLOG (INFO) << "New user is now offline: " << m_online_users.at(0);
     if (m_online_users.at(0).name != "") {
-      logLabel->setText(logLabel->toPlainText() + "\n[" + m_online_users.at(0).name + "]@" +
+      m_log_label->setText(m_log_label->toPlainText() + "\n[" + m_online_users.at(0).name + "]@" +
 			m_online_users.at(0).ip + ":" +
 			QString::number(m_online_users.at(0).rx_port) + " is now offline.");
-      QString current = onlineUsers->toPlainText();
+      QString current = m_online_users_label->toPlainText();
       DLOG (INFO) << "Removing: " << current.remove(m_online_users.at(0).name, Qt::CaseInsensitive).toStdString() ;
-      onlineUsers->setText(current);
+      m_online_users_label->setText(current);
       m_online_users.removeAt(0);
-      qobject_cast<QLabel*>(mainLayout->itemAt(2)->widget())->setText("Currently online users("
+      qobject_cast<QLabel*>(m_main_layout->itemAt(2)->widget())->setText("Currently online users("
 								      + QString::number(m_online_users.size()) + "):");
     }
   }

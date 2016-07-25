@@ -42,15 +42,15 @@ namespace tcp_messenger {
     int getIndexOfUEName(const QString& name);
     int getIndexOfUEIp(const QString& ip);
   private:
-    QVBoxLayout *mainLayout;
-    QLabel *statusLabel;
-    QTextEdit *logLabel;
-    QTextEdit *onlineUsers;
-    QPushButton *quitButton;
-    QTcpServer *tcpServer;
-    QNetworkSession *networkSession;
+    QVBoxLayout *m_main_layout;
+    QLabel *m_status_label;
+    QTextEdit *m_log_label;
+    QTextEdit *m_online_users_label;
+    QPushButton *m_quit_button;
+    QTcpServer *m_tcp_server;
+    QNetworkSession *m_network_session;
     QList<UE> m_online_users;
-    quint16 blockSize;
+    quint16 m_block_size;
     bool m_debug;
     Protocol *m_protocol;
   };

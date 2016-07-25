@@ -4,7 +4,7 @@
 namespace tcp_messenger {
   
   Message::Message(QWidget* parent) : m_self(false) {
-    resize(500, 38);
+    resize(500, 50);
 
     setObjectName("Message");
     setObjectName("#Message {border-bottom: 2px solid black; background-color: white;}");
@@ -39,7 +39,7 @@ namespace tcp_messenger {
   }
   
   Message::Message(const QString& text, bool self, QWidget* parent) {
-    resize(500, 38);
+    resize(500, 50);
         
     m_main_layout = new QHBoxLayout;
 
