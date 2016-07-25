@@ -2,15 +2,9 @@
 
 #include "message.hpp"
 #include "chat.hpp"
-
-#include "bits.hpp"
-#include <cstdint>
-#include <iostream>
+#include "definitions.hpp"
 
 namespace tcp_messenger {
-
-  static const int MAX_MESSAGES = 6;
-  static const uint8_t MASK = 89;
   
   Chat::Chat(const QString& name, QWidget *parent) : m_name(name){
     setStyleSheet("background-color: white;");
