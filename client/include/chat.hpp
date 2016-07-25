@@ -26,6 +26,7 @@ namespace tcp_messenger {
     ~Chat();
     unsigned int addMessage(const QString& text, bool self, const QString& from);
     void setMessageStatus(unsigned int message_id, int status);
+    int getIndexOfMessageInBuffer(unsigned int message_id);
   private slots:
     void sliderMovedSlot(int value);
   private:

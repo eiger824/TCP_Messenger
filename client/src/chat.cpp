@@ -80,8 +80,25 @@ namespace tcp_messenger {
     } else {
       LOG (ERROR) << "Message ID " << message_id << " was not found on conversation. Returning.";
     }
+    //and change it in the buffer
+    index = getIndexOfMessageInBuffer(message_id);
+    if (index != -1) {
+      MessageData temp = m_message_buffer.at(index);
+      temp.status = status;
+      m_message_buffer.replace(index,temp);
+      DLOG (INFO) << "Updated new status in buffer.";
+    }
   }
 
+  int Chat::getIndexOfMessageInBuffer(unsigned int message_id) {
+    for (unsigned i = 0; i < m_message_buffer.size(); ++i) {
+      if (m_message_buffer.at(i).id == message_id) {
+	return i;
+      }
+    }
+    return -1;
+  }
+  
   int Chat::getIndexOfMessageID(unsigned int message_id) {
     for (unsigned i = 0; i < m_main_layout->count(); ++i) {
       if (qobject_cast<Message*>(m_main_layout->itemAt(i)->widget())->getMessageID() == message_id) {
@@ -95,7 +112,17 @@ namespace tcp_messenger {
     DLOG (INFO) << "New position: " << value;
     if (value < MAX_MESSAGES)
       return;
-    
+    unsigned int k =0;
+    for (unsigned int i = value - 6; i < value; ++i) {
+      Message *current =
+	qobject_cast<Message*>(m_main_layout->itemAt(k)->widget());
+      MessageData buffer_item = m_message_buffer.at(i);
+      current->newMessage(buffer_item.text);
+      current->setSender(buffer_item.self);
+      current->setMessageStatus(buffer_item.status);
+      current->setMessageID(buffer_item.id);
+      ++k;
+    }
   } 
  
 }
