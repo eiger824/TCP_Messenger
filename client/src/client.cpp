@@ -175,7 +175,7 @@ namespace tcp_messenger {
 
   void Client::dataReceived()
   {
-    debugInfo("Reading incoming data from server...");
+    debugInfo("Reading incoming data from server...",1);
     QDataStream in(m_transmission_socket);
     in.setVersion(QDataStream::Qt_4_0);
 
@@ -192,13 +192,13 @@ namespace tcp_messenger {
     QString message;
     in >> message;
   
-    debugInfo("Stream received: " + message);
+    debugInfo("Stream received: " + message,1);
 
     ProtocolStreamType_Server type;
     QStringList params = m_protocol->parseStream_Server(type,message);
     /********/
     for (auto param: params) {
-      DLOG (INFO) << "Param: [" << param.toStdString() << "]";
+      debugInfo(param,2);
     }
     /********/
     switch (type) {
@@ -207,21 +207,21 @@ namespace tcp_messenger {
 	QStringList userlist = params.at(0).split("-");
 	userlist.insert(0, "Select from list...");
 	m_box->addItems(userlist);
-	debugInfo("Online users:" + userlist.join("-"));
+	debugInfo("Online users:" + userlist.join("-"),1);
 	//create qmaps with empty conversations
 	for (unsigned i = 1; i < userlist.size(); ++i) {
 	  //and create conversation windows if not exisiting
 	  if (m_window->addUser(userlist.at(i))) {
-	    debugInfo("User " + userlist.at(i) + " added to conversation stack");
+	    debugInfo("User " + userlist.at(i) + " added to conversation stack",2);
 	  } else {
-	    debugInfo("User " + userlist.at(i) + " was already registered.");
+	    debugInfo("User " + userlist.at(i) + " was already registered.",2);
 	  }
 	}
 	//and change icon
 	QPixmap image;
 	if (image.load(QString::fromStdString("images/online.png"))) {
 	  m_status->setPixmap(image);
-	  debugInfo("Icon changed!");
+	  debugInfo("Icon changed!",3);
 	}
 	//and disable server fields
 	enableServerFields(false);
@@ -231,7 +231,7 @@ namespace tcp_messenger {
       {
 	m_window->setMessageStatus(m_username_lineedit->text(),
 				   (unsigned int) params.at(1).toInt(), 1);
-	debugInfo("Message was seen");
+	debugInfo("Message was seen",1);
 	break;
       }
     case SERVER_ERROR:
@@ -249,9 +249,9 @@ namespace tcp_messenger {
       
     default:
       {
-	debugInfo("Self message detected");
+	debugInfo("Self message detected",1);
 	DLOG (INFO) << m_window->newMessageFromUser(params.at(0), false, params.at(2));
-	debugInfo("Setting seen status");
+	debugInfo("Setting seen status",2);
 	m_window->setMessageStatus(m_username_lineedit->text(),
 				   (unsigned int) params.at(3).toInt(), 2);
 	break;
@@ -328,7 +328,7 @@ namespace tcp_messenger {
   }
 
   void Client::sendMessage() {
-    debugInfo("Message slot called");
+    debugInfo("Message slot called",3);
     if (!m_message_lineedit->toPlainText().isEmpty() &&
 	m_message_lineedit->isEnabled()) {
       QString message = m_message_lineedit->toPlainText();
@@ -355,7 +355,7 @@ namespace tcp_messenger {
       out << string_stream;
       out.device()->seek(0);
       out << (quint16)(block.size() - sizeof(quint16));
-      debugInfo( "Transmitting stream: " + string_stream);
+      debugInfo( "Transmitting stream: " + string_stream,2);
       m_transmission_socket->write(block);
       DLOG (INFO) << "Stream sent to server!";
       //if typing timer is active, just stop it
@@ -371,17 +371,17 @@ namespace tcp_messenger {
   void Client::nowOnline() {
     //start listening server
     unsigned cnt = 0;
-    debugInfo("Attempting connection on port: " + QString::number(m_listening_port));
+    debugInfo("Attempting connection on port: " + QString::number(m_listening_port),2);
     while (!m_listen_socket->listen(QHostAddress(m_host_lineedit->text()), m_listening_port)) {
       if (m_listening_port <= 65535 && cnt < 10) {
 	m_listening_port += 2;
 	++cnt;
-	debugInfo("Error: Trying next port: " + QString::number(m_listening_port));
+	debugInfo("Error: Trying next port: " + QString::number(m_listening_port),4);
       } else break;
     }
     if (m_listening_port < 65536) {
       debugInfo("Success: client will listen to server @ " +
-		m_host_lineedit->text() + ":" + QString::number(m_listening_port));
+		m_host_lineedit->text() + ":" + QString::number(m_listening_port),2);
       
     } else {
       LOG (ERROR) << "No available ports were found. Closing client...";
@@ -409,7 +409,7 @@ namespace tcp_messenger {
   
     //online variable
     m_online = true;
-    debugInfo("Success!");    
+    debugInfo("Success! Now online",2);    
   }
 
   void Client::nowOffline() {
@@ -419,7 +419,7 @@ namespace tcp_messenger {
     m_message_lineedit->setEnabled(false);
     m_message_lineedit->setStyleSheet("background-color: #C0C0C0;");
 
-    debugInfo("Removing my name from list");
+    debugInfo("Removing my name from list",3);
     //and remove my name from list
     m_box->removeItem(1);
   }
@@ -427,7 +427,7 @@ namespace tcp_messenger {
   void Client::getOffline() {
     if (m_online) {
       //notify server
-      DLOG (INFO) << "About to go offline";
+      debugInfo("Going offline",3);
       m_block_size = 0;
       m_transmission_socket->abort();
       m_transmission_socket->connectToHost(m_host_lineedit->text(),
@@ -457,13 +457,14 @@ namespace tcp_messenger {
       enableServerFields(true);
       //and close listening socket
       m_listen_socket->close();
-      debugInfo("Success: listening socket was closed!");
+      debugInfo("Success: listening socket was closed!",1);
     } else {
       DLOG (INFO) << "User already offline";
     }
   }
 
   void Client::setData(bool debug_mode,
+		       int verbose,
 		       std::string username,
 		       std::string ip,
 		       std::string port,
@@ -473,8 +474,11 @@ namespace tcp_messenger {
     m_save = save_output;
     if (m_debug) {
       m_checkbox->toggle();
+      m_level = verbose;
+      DLOG (INFO) << "Verbosity level: " << verbose;
     } else {
       DLOG (INFO) << "Debug mode is disabled";
+      m_level = 0; 
     }
     if (m_save) {
       DLOG (INFO) << "Will save output on: " << path;
@@ -492,9 +496,10 @@ namespace tcp_messenger {
       m_port_lineedit->setText(QString::fromStdString(port));
   }
 
-  void Client::debugInfo(const QString& info) {
+  void Client::debugInfo(const QString& info, int level) {
     if (m_debug) {
-      DLOG (INFO) << info.toStdString();
+      if (level <= m_level)
+	DLOG (INFO) << level << " <=" << m_level << ": " << info.toStdString();
     }
     if (m_save) {
       QTextStream out(m_log_file);
@@ -532,8 +537,8 @@ namespace tcp_messenger {
     QString current_conver = m_box->itemText(index);
     if (index != 0) {
       emit currentWindowChanged(current_conver);
-      debugInfo("New index: " + QString::number(index) + " (chatting with " + current_conver + ")");
-      debugInfo("Switched conversation");
+      debugInfo("New index: " + QString::number(index) + " (chatting with " + current_conver + ")",4);
+      debugInfo("Switched conversation",4);
     }
     if (index == 0) {
       //disable message field
@@ -549,15 +554,15 @@ namespace tcp_messenger {
   void Client::newServerConnection() {
     QTcpSocket *socket = m_listen_socket->nextPendingConnection();
     debugInfo("Incoming connection from server: " + socket->peerAddress().toString() + ":"
-	      + QString::number(socket->peerPort()));
+	      + QString::number(socket->peerPort()),2);
     if (!socket->waitForReadyRead(5000)) {
-      debugInfo("ERROR: transmission timed out");
+      LOG (ERROR) << "ERROR: transmission timed out";
     } else {
       //parse data
       QDataStream in(socket);
       in.setVersion(QDataStream::Qt_4_0);
-      debugInfo("blocksize: " + QString::number(m_block_size));
-      debugInfo("bytes available in client socket: " + QString::number(socket->bytesAvailable()));
+      debugInfo("blocksize: " + QString::number(m_block_size),4);
+      debugInfo("bytes available in client socket: " + QString::number(socket->bytesAvailable()),4);
       if (m_block_size == 0) {
 	if (socket->bytesAvailable() < (int)sizeof(quint16))
 	  return;
@@ -571,13 +576,13 @@ namespace tcp_messenger {
       QString message;
       in >> message;
     
-      debugInfo("Message: [" + message + "]");
+      debugInfo("Message: [" + message + "]",1);
 
       ProtocolStreamType_Server type;
       QStringList params = m_protocol->parseStream_Server(type,message);
       /********/
       for (auto param: params) {
-	DLOG (INFO) << "Param: [" << param.toStdString() << "]";
+	debugInfo(param,3);
       }
       /********/
       switch (type) {
@@ -587,21 +592,21 @@ namespace tcp_messenger {
 	  userlist.insert(0, "Select from list...");
 	  m_box->clear();
 	  m_box->addItems(userlist);
-	  debugInfo("Online users:" + userlist.join("-"));
+	  debugInfo("Online users:" + userlist.join("-"),1);
 	  //create qmaps with empty conversations
 	  for (unsigned i = 1; i < userlist.size(); ++i) {
 	    //and create conversation windows if not exisiting
 	    if (m_window->addUser(userlist.at(i))) {
-	      debugInfo("User " + userlist.at(i) + " added to conversation stack");
+	      debugInfo("User " + userlist.at(i) + " added to conversation stack",3);
 	    } else {
-	      debugInfo("User " + userlist.at(i) + " was already registered.");
+	      debugInfo("User " + userlist.at(i) + " was already registered.",3);
 	    }
 	  }
 	  //and change icon
 	  QPixmap image;
 	  if (image.load(QString::fromStdString("images/online.png"))) {
 	    m_status->setPixmap(image);
-	    debugInfo("Icon changed!");
+	    debugInfo("Icon changed!",4);
 	  }
 	  //and disable server fields
 	  enableServerFields(false);
@@ -611,7 +616,7 @@ namespace tcp_messenger {
 	{
 	  m_window->setMessageStatus(m_username_lineedit->text(),
 				     (unsigned int) params.at(1).toInt(), 1);
-	  debugInfo("Message was seen");
+	  debugInfo("Message was seen",1);
 	  break;
 	}
       case SERVER_ERROR:
@@ -633,10 +638,10 @@ namespace tcp_messenger {
 	  unsigned int message_id = (unsigned int) params.at(2).toInt();
 	  //extra check
 	  debugInfo("@@@ ack received, FROM: " + from + ", TO: " + dest + ", to MESSAGE ID: " +
-		    QString::number(message_id));
+		    QString::number(message_id),1);
 	  if (dest == m_username_lineedit->text()) {
 	    m_window->setMessageStatus(from, message_id, 2);
-	    debugInfo("Message was successfully sent & seen!");
+	    debugInfo("Message was successfully sent & seen!",2);
 	  }
 	  break;
 	}
@@ -645,7 +650,7 @@ namespace tcp_messenger {
 	  QString dest = params.at(0);
 	  QString from = params.at(1);
 	  QString status = params.at(2);
-	  debugInfo("(" + dest + "," + from + "," + status + ")");
+	  debugInfo("(" + dest + "," + from + "," + status + ")",2);
 	  if (status == "1") {
 	    m_typing_label->setText("(" + from + " is typing...)");
 	  } else {
@@ -655,11 +660,11 @@ namespace tcp_messenger {
 	}
       default:
 	{
-	  debugInfo("New message was received");
+	  debugInfo("New message was received",2);
 	  unsigned int message_id =
 	    m_window->newMessageFromUser(params.at(0), false, params.at(2));
 	  m_typing_label->setText("");
-	  debugInfo("Now sending ACK to user " + params.at(2) + ", to message ID: " + QString::number(message_id));
+	  debugInfo("Now sending ACK to user " + params.at(2) + ", to message ID: " + QString::number(message_id),2);
 	  m_block_size = 0;
 	  m_transmission_socket->abort();
 	  m_transmission_socket->connectToHost(m_host_lineedit->text(),
@@ -673,7 +678,7 @@ namespace tcp_messenger {
 	  debugInfo("ABOUT TO SEND ACK: PARAMETERS(" +
 		    params.at(2) + "," +
 		    m_username_lineedit->text() + "," +
-		    QString::number(message_id) + ")");
+		    QString::number(message_id) + ")",3);
 	  out << m_protocol->constructStream_UE(ack_params,
 						ProtocolStreamType_UE::UE_ACK);
 	  out.device()->seek(0);
@@ -683,7 +688,7 @@ namespace tcp_messenger {
 	  if (!m_transmission_socket->waitForBytesWritten(2000)) {
 	    LOG (ERROR) << "ERROR: transmission timeout.";
 	  } else {
-	    debugInfo("Success! ACK was sent to server");
+	    debugInfo("Success! ACK was sent to server",2);
 	  }
 	  m_transmission_socket->disconnectFromHost();
 	  break;
@@ -697,7 +702,7 @@ namespace tcp_messenger {
     m_typing_timer->start(1000);
     if (!m_typing_hold) {
       //then we send the typing information
-      debugInfo("Text changing, going to send typing info");
+      debugInfo("Text changing, going to send typing info",5);
       sendTypingInfo(true);
       //and lock the variable
       m_typing_hold = true;
@@ -706,10 +711,10 @@ namespace tcp_messenger {
 
   void Client::timeoutSlot() {
     if (m_typing_timer->isActive()) {
-      debugInfo("Going to stop typing timer");
+      debugInfo("Going to stop typing timer",5);
       m_typing_timer->stop();
       //then we sent the typing information
-      debugInfo("Text stopped changing, going to send typing info");
+      debugInfo("Text stopped changing, going to send typing info",5);
       sendTypingInfo(false);
       //and unlock the variable
       m_typing_hold = false;
@@ -721,7 +726,7 @@ namespace tcp_messenger {
     m_transmission_socket->abort();
     m_transmission_socket->connectToHost(m_host_lineedit->text(),
 					 m_port_lineedit->text().toInt());
-    debugInfo("Attempting connection on: " + m_host_lineedit->text() + ":" + m_port_lineedit->text());
+    debugInfo("Attempting connection on: " + m_host_lineedit->text() + ":" + m_port_lineedit->text(),2);
     if (!m_transmission_socket->waitForConnected(3000)) {
       LOG (ERROR) << "ERROR: Connection timeout.";
       m_block_size = 0;
@@ -737,7 +742,7 @@ namespace tcp_messenger {
       debugInfo("ABOUT TO SEND TYPING: PARAMETERS(" +
 		m_box->currentText() + "," +
 		m_username_lineedit->text() + "," +
-		QString::number(nr) + ")");
+		QString::number(nr) + ")",4);
     
       out << m_protocol->constructStream_UE(typing_params,
 					    ProtocolStreamType_UE::UE_TYPING);
@@ -748,7 +753,7 @@ namespace tcp_messenger {
       if (!m_transmission_socket->waitForBytesWritten(2000)) {
 	LOG (ERROR) << "ERROR: transmission timeout.";
       } else {
-	debugInfo("Success! Typing information was sent to server");
+	debugInfo("Success! Typing information was sent to server",3);
       }
       m_transmission_socket->disconnectFromHost();
     }

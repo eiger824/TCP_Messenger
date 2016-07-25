@@ -31,6 +31,7 @@ namespace tcp_messenger {
   public:
     Client(QWidget *parent = 0);
     void setData(bool debug_mode,
+		 int verbose,
 		 std::string username,
 		 std::string ip,
 		 std::string port,
@@ -56,7 +57,7 @@ namespace tcp_messenger {
     void currentWindowChanged(const QString& user);
   private:
     void keyPressEvent(QKeyEvent *event);
-    void debugInfo(const QString& info);
+    void debugInfo(const QString& info, int level);
     void enableServerFields(bool enabled);
     void sendTypingInfo(bool typing);
   private:
@@ -90,6 +91,7 @@ namespace tcp_messenger {
     bool m_typing_hold;
     QLabel *m_typing_label;
     bool m_save;
+    int m_level;
     QFile *m_log_file;
   };
 }
