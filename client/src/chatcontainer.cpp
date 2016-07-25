@@ -6,8 +6,6 @@
 namespace tcp_messenger {
 
   ChatContainer::ChatContainer(QWidget *parent) {
-    setObjectName("ChatWindowWrapper");
-    setStyleSheet("background-color: white;");
     m_conver_stack = new QStackedWidget(this);
     m_main_layout = new QVBoxLayout;
     m_main_layout->setAlignment(Qt::AlignTop);

@@ -33,7 +33,6 @@ namespace tcp_messenger {
     
     //chat window
     m_window = new ChatContainer();
-    m_window->setFixedSize(560,380);
     
     connect(this, SIGNAL(currentWindowChanged(const QString&)), m_window,
 	    SLOT(currentWindowChangedSlot(const QString&)));

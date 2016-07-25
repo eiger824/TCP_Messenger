@@ -27,7 +27,7 @@ namespace tcp_messenger {
     //will change alingments
     void fromMe(bool self);
     //sets message
-    void newMessage(const QString& text);
+    void newMessage(QString text);
     void setMessageStatus(int status);
     void setSender(bool self);
     unsigned int getMessageID();
@@ -35,12 +35,8 @@ namespace tcp_messenger {
     QString getText();
     bool getSelf();
     STATUS getStatus();
-    void setStatusIcons();
-  signals:
-    void statusChanged(STATUS status);
   private slots:
     void timerTimedOut();
-    void statusChangedSlot(STATUS status);
   public:
     void operator=(Message const& next_message);
   private:

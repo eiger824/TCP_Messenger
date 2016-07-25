@@ -8,7 +8,7 @@
 namespace tcp_messenger {
 
   static const quint16 LISTEN_PORT = 30500;
-  static const int MAX_MESSAGES = 9;
+  static const int MAX_MESSAGES = 6;
   static const int ENTER = 16777220;
   static const unsigned int PROTOCOL_VERSION = 1.0;
 

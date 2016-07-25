@@ -4,7 +4,7 @@
 namespace tcp_messenger {
   
   Message::Message(QWidget* parent) : m_self(false) {
-    setFixedSize(500, 38);
+    resize(500, 38);
 
     setObjectName("Message");
     setObjectName("#Message {border-bottom: 2px solid black; background-color: white;}");
@@ -12,7 +12,7 @@ namespace tcp_messenger {
     m_main_layout = new QHBoxLayout;
     
     m_text_label = new QLabel();
-    m_text_label->setContentsMargins(5,0,30,15);
+    m_text_label->setContentsMargins(5,0,30,0);
     m_text_label->setWordWrap(true);
 
     QPixmap image;
@@ -29,24 +29,22 @@ namespace tcp_messenger {
     m_ack_timer = new QTimer(this);
     connect(m_ack_timer, SIGNAL(timeout()), this, SLOT(timerTimedOut()));
 
-    //local signal-slot connection
-    connect(this, SIGNAL(statusChanged(STATUS)), this, SLOT(statusChangedSlot(STATUS)));
-
     m_status = SENDING;
 
     m_message_id = rand() % 1000 + 1;
     
     setLayout(m_main_layout);
+    setContentsMargins(0,0,0,0);
     show();
   }
   
   Message::Message(const QString& text, bool self, QWidget* parent) {
-    setFixedSize(500, 38);
+    resize(500, 38);
         
     m_main_layout = new QHBoxLayout;
 
     setObjectName("Message");
-    setObjectName("#Message {background-color: white;}");
+    setStyleSheet("#Message {border-bottom : 2px solid #347F91;}");
     
     m_text_label = new QLabel(text);
     m_text_label->setContentsMargins(5,5,30,15);
@@ -57,23 +55,21 @@ namespace tcp_messenger {
     if (image.load("images/clock.png"))
       m_status_label->setPixmap(image);
 
-    m_status_label->setContentsMargins(11,5,11,20);
+    m_status_label->setContentsMargins(11,5,11,0);
 
     m_main_layout->addWidget(m_text_label);
     m_main_layout->addWidget(m_status_label);
 
     fromMe(self);
 
+    m_ack_timer = new QTimer(this);
+    connect(m_ack_timer, SIGNAL(timeout()), this, SLOT(timerTimedOut()));
+    
     //start timer
     if (self) {
-      m_ack_timer = new QTimer(this);
-      connect(m_ack_timer, SIGNAL(timeout()), this, SLOT(timerTimedOut()));
       DLOG (INFO) << "Timer starting..";
       m_ack_timer->start(10 * 1000);
     }
-
-    //local signal-slot connection
-    connect(this, SIGNAL(statusChanged(STATUS)), this, SLOT(statusChangedSlot(STATUS)));
     
     m_status = SENDING;
     m_message_id = rand() % 1000 + 1;
@@ -81,7 +77,8 @@ namespace tcp_messenger {
     setLayout(m_main_layout);
 
     changeSize(text.size() / 45 + 1);
-    
+
+    setContentsMargins(0,0,0,0);
     show();
   }
 
@@ -89,7 +86,7 @@ namespace tcp_messenger {
 
   void Message::changeSize(int nr) {
     DLOG (INFO) << "Resizing message box";
-    resize(this->width(), this->width() * nr);
+    resize(this->width(), this->height() * nr);
     repaint();
   }
 
@@ -108,7 +105,7 @@ namespace tcp_messenger {
     DLOG (INFO) << "From self set: " << self;
   }
 
-  void Message::newMessage(const QString& text) {
+  void Message::newMessage(QString text) {
     m_text_label->setText(text);
     changeSize(text.size() / 45 + 1);
     if (m_self)
@@ -117,11 +114,9 @@ namespace tcp_messenger {
   }
 
   void Message::timerTimedOut() {
-    DLOG (INFO) << "Timeout!!";
+    DLOG (INFO) << "Timeout";
     if (m_status == SENDING) {
-      m_status = LOST;
-      DLOG (INFO) << "Emitting signal";
-      emit statusChanged(LOST);
+      setMessageStatus(LOST);
       m_ack_timer->stop();
     }
   }
@@ -138,7 +133,18 @@ namespace tcp_messenger {
     return m_text_label->text();
   }
 
-  void Message::setStatusIcons() {
+  void Message::setSender(bool self) {
+    fromMe(self);
+  }
+
+  void Message::setMessageStatus(int status) {
+    if (!m_self)
+      return;
+    else
+      m_status_label->setVisible(true);
+    
+    DLOG (INFO) << "Setting status: " << status;
+    m_status = (STATUS) status;
     QPixmap image;
     switch (m_status) {
     case SENDING:
@@ -168,32 +174,6 @@ namespace tcp_messenger {
       break;
     }
   }
-  
-  void Message::statusChangedSlot(STATUS status) {
-    setStatusIcons();
-    DLOG (INFO) << "Status updated to " << status;
-  }
-
-  void Message::setSender(bool self) {
-    fromMe(self);
-  }
-
-  void Message::setMessageStatus(int status) {
-    DLOG (INFO) << "Setting status: " << status;
-    if (status == 0) {
-      m_status = SENDING;
-      emit statusChanged(SENDING);
-    } else if (status == 1) {
-      m_status = SENT;
-      emit statusChanged(SENT);
-    } else if (status == 2) {
-      m_status = RECEIVED;
-      emit statusChanged(RECEIVED);
-    } else if (status == 3) {
-      m_status = LOST;
-      emit statusChanged(LOST);
-    }
-  }
 
   bool Message::getSelf() {
     return m_self;
@@ -204,11 +184,11 @@ namespace tcp_messenger {
   }
   
   void Message::operator=(Message const& next_message) {
-    m_text_label->setText(next_message.m_text_label->text());
-    m_message_id = next_message.m_message_id;
-    m_status = next_message.m_status;
-    //statusChangedSlot(next_message.m_status);
+    newMessage(next_message.m_text_label->text());
     fromMe(next_message.m_self);
-    setStatusIcons();
+    setMessageStatus(next_message.m_status);
+    DLOG (INFO) << "OLD message ID: " << m_message_id;
+    m_message_id = next_message.m_message_id;
+    DLOG (INFO) << "NEW message ID: " << m_message_id;
   }
 }

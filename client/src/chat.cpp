@@ -5,12 +5,11 @@
 
 namespace tcp_messenger {
 
-  static const int MAX_MESSAGES = 8;
+  static const int MAX_MESSAGES = 6;
   
   Chat::Chat(const QString& name, QWidget *parent) : m_name(name){
-    setObjectName("ChatWindow");
-    setStyleSheet("#ChatWindow {background-color: white;}");
-
+    setStyleSheet("background-color: white;");
+    setFixedSize(600,340);
     m_side_bar = new QScrollBar;
     m_side_bar->setMinimum(0);
     m_side_bar->setMaximum(MAX_MESSAGES - 1);
@@ -20,6 +19,8 @@ namespace tcp_messenger {
     
     m_main_layout = new QVBoxLayout;
     m_principal_layout = new QHBoxLayout;
+
+    m_principal_layout->setSpacing(0);
     
     m_main_layout->setSpacing(0);
     m_main_layout->setAlignment(Qt::AlignTop);
@@ -40,19 +41,15 @@ namespace tcp_messenger {
       else
 	m_main_layout->addWidget(new Message(text,self));
 
-     
+      DLOG (INFO) << "how many messages: " << m_main_layout->count() << "/" << MAX_MESSAGES;
     } else {
       Message *current, *next;
-      DLOG (INFO) << "@@@@@@@@@@@@@@@@@@@@@@@@@@ COPYING MESSAGES @@@@@@@@@@@@@@@@";
       for (unsigned i = 0; i < MAX_MESSAGES - 1; ++i) {
 	current = qobject_cast<Message*>(m_main_layout->itemAt(i)->widget());
 	next = qobject_cast<Message*>(m_main_layout->itemAt(i+1)->widget());
-	DLOG (INFO) << "Copying elem " << i+1 << "/" << m_main_layout->count()
-		    << " to elem " << i << "/" << m_main_layout->count();
 
 	*current = *next;
       }
-      DLOG (INFO) << "@@@@@@@@@@@@@@@@@@@@@@@@@@ CASTING LAST  @@@@@@@@@@@@@@@@";
       Message *last = qobject_cast<Message*>(m_main_layout->itemAt(MAX_MESSAGES - 1)->widget());
       unsigned int id = rand() & 1000 + 1;
       DLOG (INFO) << "Casted last, going to set message ID: " << id;
@@ -96,6 +93,9 @@ namespace tcp_messenger {
 
   void Chat::sliderMovedSlot(int value) {
     DLOG (INFO) << "New position: " << value;
+    if (value < MAX_MESSAGES)
+      return;
+    
   } 
  
 }
