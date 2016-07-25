@@ -98,20 +98,15 @@ namespace tcp_messenger {
     QPushButton *send = new QPushButton(tr("&Send"));
      
     connect(m_listen_socket, SIGNAL(newConnection()), this, SLOT(newServerConnection()));
-    connect(m_host_lineedit, SIGNAL(textChanged(QString)),
-	    this, SLOT(enableConnectButton()));
-    connect(m_port_lineedit, SIGNAL(textChanged(QString)),
-	    this, SLOT(enableConnectButton()));
-    connect(m_connect_to_host, SIGNAL(clicked()),
-	    this, SLOT(getOnline()));
+    connect(m_host_lineedit, SIGNAL(textChanged(QString)), this, SLOT(enableConnectButton()));
+    connect(m_port_lineedit, SIGNAL(textChanged(QString)), this, SLOT(enableConnectButton()));
+    connect(m_connect_to_host, SIGNAL(clicked()), this, SLOT(getOnline()));
     connect(m_disconnect_from_host, SIGNAL(clicked()), this, SLOT(getOffline()));
     connect(m_transmission_socket, SIGNAL(readyRead()), this, SLOT(dataReceived()));
     connect(m_connection_socket, SIGNAL(error(QAbstractSocket::SocketError)),
 	    this, SLOT(displayError(QAbstractSocket::SocketError)));
-    connect(m_connection_socket, SIGNAL(connected()), this,
-	    SLOT(nowOnline()));
-    connect(m_connection_socket, SIGNAL(disconnected()), this,
-	    SLOT(nowOffline()));
+    connect(m_connection_socket, SIGNAL(connected()), this, SLOT(nowOnline()));
+    connect(m_connection_socket, SIGNAL(disconnected()), this, SLOT(nowOffline()));
     connect(m_message_lineedit, SIGNAL(textChanged()), this, SLOT(textChangedSlot()));
     connect(m_typing_timer, SIGNAL(timeout()), this, SLOT(timeoutSlot()));
     connect(m_checkbox, SIGNAL(toggled(bool)), this, SLOT(changeDebugMode(bool)));
@@ -471,13 +466,23 @@ namespace tcp_messenger {
   void Client::setData(bool debug_mode,
 		       std::string username,
 		       std::string ip,
-		       std::string port) {
+		       std::string port,
+		       bool save_output,
+		       std::string path) {
     m_debug = debug_mode;
+    m_save = save_output;
     if (m_debug) {
       m_checkbox->toggle();
-    }
-    else
+    } else {
       DLOG (INFO) << "Debug mode is disabled";
+    }
+    if (m_save) {
+      DLOG (INFO) << "Will save output on: " << path;
+      m_log_file = new QFile(QString::fromStdString(path));
+      if (!m_log_file->open(QIODevice::WriteOnly | QIODevice::Text)) {
+	LOG (ERROR) << "ERROR: Could not open file to read: " << path;
+      }
+    }
 
     if (!QString::fromStdString(username).isEmpty())
       m_username_lineedit->setText(QString::fromStdString(username));
@@ -490,6 +495,10 @@ namespace tcp_messenger {
   void Client::debugInfo(const QString& info) {
     if (m_debug) {
       DLOG (INFO) << info.toStdString();
+    }
+    if (m_save) {
+      QTextStream out(m_log_file);
+      out << info << "\n";
     }
   }
 

@@ -33,7 +33,9 @@ namespace tcp_messenger {
     void setData(bool debug_mode,
 		 std::string username,
 		 std::string ip,
-		 std::string port);
+		 std::string port,
+		 bool save_output,
+		 std::string path);
 
   private slots:
     void dataReceived();
@@ -87,6 +89,8 @@ namespace tcp_messenger {
     QTimer *m_typing_timer;
     bool m_typing_hold;
     QLabel *m_typing_label;
+    bool m_save;
+    QFile *m_log_file;
   };
 }
 #endif

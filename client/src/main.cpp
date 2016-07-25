@@ -10,6 +10,8 @@ void displayHelp() {
   std::cout << "Usage: ./client <args>\n";
   std::cout << "Arg. list:\n";
   std::cout << "-d, --debug Enable debug mode (disabled by default)\n";
+  std::cout << "-f, --filename <path> Save output log to filename specified by <path>\n";
+  std::cout << "-h, --help Prints this help\n";
   std::cout << "--ip <ipaddr> Server IP address\n";
   std::cout << "-p, --port <port> Server port\n";
   std::cout << "-u, --username <name> Username to use\n";
@@ -21,14 +23,19 @@ int main(int argc, char *argv[])
   std::string username = "";
   std::string ip = "";
   std::string port = "";
+  bool save_output = false;
+  std::string path = "";
   if (argc > 1) {
     for (unsigned i = 1; i < argc; ++i) {
       if (!strcmp(argv[i],"-d") ||
 	  !strcmp(argv[i],"--debug")) {
 	debug_enabled = true;
+      } else if (!strcmp(argv[i],"-h") ||
+		 !strcmp(argv[i],"--help")) {
+	displayHelp();
+	return 0;
       } else if (!strcmp(argv[i],"-u") ||
-		 !strcmp(argv[i],"--username")
-		 ) {
+		 !strcmp(argv[i],"--username")) {
 	if (i != argc-1) {
 	  username = argv[i+1];
 	} else {
@@ -67,6 +74,16 @@ int main(int argc, char *argv[])
 	  return -1;
 	}
 	++i;
+      } else if (!strcmp(argv[i],"-f") ||
+		 !strcmp(argv[i],"--filename")) {
+	if (i != argc-1) {
+	  path = argv[i+1];
+	  save_output = true;
+	} else {
+	  displayHelp();
+	  return -1;
+	}
+	++i;
       } else {
 	std::cout << "ERROR: unrecognized option : " << argv[i] << std::endl;
 	displayHelp();
@@ -76,7 +93,7 @@ int main(int argc, char *argv[])
   }
   QApplication app(argc, argv);
   Client client;
-  client.setData(debug_enabled, username, ip, port);
+  client.setData(debug_enabled, username, ip, port, save_output, path);
   
 #ifdef Q_OS_SYMBIAN
   // Make application better looking and more usable on small screen
