@@ -34,7 +34,7 @@ namespace tcp_messenger {
       LOG (ERROR) << "Error: user " << from.toStdString() << " was not found. Returning...";
       return 0;
     } else {
-      DLOG (INFO) << "Adding message";
+      DLOG (INFO) << "Adding message at index: " << m_current_users.indexOf(from);
       return (qobject_cast<Chat*>(m_conver_stack->widget(m_current_users.indexOf(from)))->addMessage(message,self,from));
     }
   }
