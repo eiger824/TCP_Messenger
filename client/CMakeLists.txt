@@ -55,5 +55,5 @@ install(FILES
   ${PROJECT_SOURCE_DIR}/utils/images/warning.png
   ${PROJECT_SOURCE_DIR}/utils/images/check.png
   ${PROJECT_SOURCE_DIR}/utils/images/seen.png
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/../images)
+  DESTINATION ${PROJECT_BINARY_DIR}/images)
 
