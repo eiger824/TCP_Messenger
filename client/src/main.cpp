@@ -9,12 +9,12 @@ using namespace tcp_messenger;
 void displayHelp() {
   std::cout << "Usage: ./client <args>\n";
   std::cout << "Arg. list:\n";
-  std::cout << "-d, --debug Enable debug mode (disabled by default)\n";
-  std::cout << "-f, --filename <path> Save output log to filename specified by <path>\n";
-  std::cout << "-h, --help Prints this help\n";
-  std::cout << "--ip <ipaddr> Server IP address\n";
-  std::cout << "-p, --port <port> Server port\n";
-  std::cout << "-u, --username <name> Username to use\n";
+  std::cout << "  -d, --debug           Enable debug mode (disabled by default)\n";
+  std::cout << "  -f, --filename [path] Save output log to filename specified by <path>\n";
+  std::cout << "  -h, --help            Prints this help\n";
+  std::cout << "  --ip [ipaddr]         Server IP address\n";
+  std::cout << "  -p, --port <port>     Server port\n";
+  std::cout << "  -u, --username <name> Username to use\n";
 }
 
 int main(int argc, char *argv[])
