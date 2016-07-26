@@ -245,7 +245,31 @@ namespace tcp_messenger {
   }
 
   QStringList Protocol::extractFields(QStringList before) {
+    DLOG (INFO) << "Size: " << before.size();
     QStringList after;
+    //first, check if ';' characters were found in the message
+    QList<int>affected_indexes;
+    for (unsigned k = 0; k < before.size() - 1; ++k) {
+      if (before.at(k).at(0) != 'u' &&
+	  before.at(k).at(0) != 's') {
+	DLOG (INFO) << "Appending: " << k;
+	affected_indexes.append(k);	
+      }
+    }
+    //then, merge this 'broken' pieces
+    if (!affected_indexes.isEmpty()) {
+      QString reconstruct = before.at(affected_indexes.at(0) - 1); //position just BEFORE pieces were broken
+      DLOG (INFO) << "First part: " << reconstruct.toStdString();
+      for (unsigned j = 0; j < affected_indexes.size(); ++j) {
+	reconstruct += ";" + before.at(affected_indexes.at(j));
+      }
+      DLOG (INFO) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@ Reconstruction finished: " << reconstruct.toStdString();
+      //finally, replace 'broken' pieces by reconstructed
+      for (auto index: affected_indexes)
+	before.removeAt(index);
+      before.replace(affected_indexes.at(0) -1, reconstruct);
+    }
+    //and then extract info
     for (unsigned i = 0; i < before.size() - 1; ++i) {
       QString temp = before.at(i);
       after << temp.mid(temp.indexOf(OPEN) + 1, temp.lastIndexOf(CLOSE) - temp.indexOf(OPEN) - 1);
