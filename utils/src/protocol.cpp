@@ -252,18 +252,17 @@ namespace tcp_messenger {
     for (unsigned k = 0; k < before.size() - 1; ++k) {
       if (before.at(k).at(0) != 'u' &&
 	  before.at(k).at(0) != 's') {
-	DLOG (INFO) << "Appending: " << k;
+	DLOG (INFO) << "Conflictive index, appending: " << k;
 	affected_indexes.append(k);	
       }
     }
     //then, merge this 'broken' pieces
     if (!affected_indexes.isEmpty()) {
       QString reconstruct = before.at(affected_indexes.at(0) - 1); //position just BEFORE pieces were broken
-      DLOG (INFO) << "First part: " << reconstruct.toStdString();
       for (unsigned j = 0; j < affected_indexes.size(); ++j) {
 	reconstruct += ";" + before.at(affected_indexes.at(j));
       }
-      DLOG (INFO) << "@@@@@@@@@@@@@@@@@@@@@@@@@@@ Reconstruction finished: " << reconstruct.toStdString();
+      DLOG (INFO) << "Confictive char found, reconstruction finished: " << reconstruct.toStdString();
       //finally, replace 'broken' pieces by reconstructed
       for (auto index: affected_indexes)
 	before.removeAt(index);
